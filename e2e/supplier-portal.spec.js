@@ -2,7 +2,7 @@ const {test,expect}=require('@playwright/test');
 test('produit, stock, archive et restauration', async ({page})=>{
   await page.goto('/');
   await expect(page.getByText('Bonjour, votre espace fournisseur')).toBeVisible();
-  await page.locator('[data-page="Produits"]').click();
+  await page.locator('.nav [data-page="Produits"]').click();
   await page.locator('[data-action="new-product"]').click();
   await page.locator('#edit-form input[name="ref"]').fill('E2E-TEST-001');
   await page.locator('#edit-form input[name="name"]').fill('Produit test automatisé');
@@ -23,16 +23,16 @@ test('produit, stock, archive et restauration', async ({page})=>{
   page.once('dialog',d=>d.accept());
   await row.locator('[data-action="archive"]').click();
   await expect(page.getByText('E2E-TEST-001')).toHaveCount(0);
-  await page.locator('[data-page="Archives"]').click();
+  await page.locator('.nav [data-page="Archives"]').click();
   await expect(page.getByText('E2E-TEST-001')).toBeVisible();
   await page.locator('tr').filter({hasText:'E2E-TEST-001'}).getByRole('button',{name:'Restaurer'}).click();
   await expect(page.getByText('E2E-TEST-001')).toHaveCount(0);
-  await page.locator('[data-page="Produits"]').click();
+  await page.locator('.nav [data-page="Produits"]').click();
   await expect(page.getByText('E2E-TEST-001')).toBeVisible();
 });
 test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await page.goto('/');
- await page.locator('[data-page="Clients professionnels"]').click();
+ await page.locator('.nav [data-page="Clients professionnels"]').click();
  await page.locator('[data-action="new-client"]').click();
  await page.locator('#edit-form input[name="name"]').fill('Test Entreprise Démo');
  await page.locator('#edit-form input[name="email"]').fill('test@example.invalid');
@@ -40,7 +40,7 @@ test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await expect(page.locator('#edit-form input[name="code"]')).not.toHaveValue('');
  await page.locator('#edit-form button[type="submit"]').click();
  await expect(page.getByText('Test Entreprise Démo')).toBeVisible();
- await page.locator('[data-page="Remises"]').click();
+ await page.locator('.nav [data-page="Remises"]').click();
  await page.locator('[data-action="new-discount"]').click();
  await page.locator('#edit-form input[name="name"]').fill('Remise automatique 5 %');
  await page.locator('#edit-form button[type="submit"]').click();
@@ -50,7 +50,7 @@ test('statistiques explicites et non simulées sur mobile',async ({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto('/');
  await page.locator('[data-action="menu"]').click();
- await page.locator('[data-page="Statistiques"]').click();
+ await page.locator('.nav [data-page="Statistiques"]').click();
  await expect(page.getByText('Statistiques NON BRANCHÉES')).toBeVisible();
  await page.locator('[data-action="period"][data-days="30"]').click();
  await expect(page.getByText('Statistiques NON BRANCHÉES')).toBeVisible();
