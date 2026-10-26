@@ -1,4 +1,4 @@
-name: Demo syntax
+name: Demo syntax and browser journeys
 on: [push, pull_request]
 jobs:
   check:
@@ -10,4 +10,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --check app.js
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Install E2E tools
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run mobile/desktop journeys
+        run: npm run test:e2e
