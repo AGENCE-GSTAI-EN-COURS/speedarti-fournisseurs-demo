@@ -1,0 +1,12 @@
+{
+  "name": "speedarti-fournisseurs-public-demo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:syntax": "node --check app.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}
