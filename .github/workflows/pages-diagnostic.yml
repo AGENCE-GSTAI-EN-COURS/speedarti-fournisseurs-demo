@@ -1,0 +1,32 @@
+name: Diagnose GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read Pages configuration from GitHub API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          status=$(curl -L -sS -o pages.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
+          echo "Pages API HTTP: ${status}"
+          if [ "${status}" = 200 ]; then
+            jq '{html_url,status,build_type,source,public,https_enforced}' pages.json
+          else
+            jq '{message,status}' pages.json 2>/dev/null || cat pages.json
+          fi
+          echo "Checking expected public URL"
+          curl --max-time 15 -L -sS -o page.html -w 'Page HTTP: %{http_code}; Final URL: %{url_effective}\n' \
+            "https://agence-gstai-en-cours.github.io/speedarti-fournisseurs-demo/"
+          head -c 180 page.html | tr '\n' ' '
+          echo
