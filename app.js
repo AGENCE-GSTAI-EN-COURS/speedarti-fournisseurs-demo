@@ -23,9 +23,10 @@ const rows=[
 let products=rows.map((x,i)=>({id:'p'+i,ref:x[0],name:x[1],category:x[2],price:x[3],qty:x[4],mode:'quantity',status:x[4]===0?'out_of_stock':x[4]<=5?'low_stock':'in_stock',archived:false,updated:today,brand:'Démo',unit:'unite',photo:null,documents:[]}));
 let companies=[{id:'c0',name:'Entreprise fictive ABC',code:'ABC-DEMO',email:'client@example.invalid',siret:'',phone:'',address:'',zip:'',city:''}];
 let discounts=[];
+let pendingLinks=[];
 let demoUnlocked=false;
 let selected=new Set(),page='Dashboard',search='',stockFilter='all',flash='',popup=null,navOpen=false,period=7,documentSearch='';
-const pages=[['▦','Dashboard'],['▣','Produits'],['♙','Clients professionnels'],['%','Remises'],['▥','Statistiques'],['▤','Documents'],['▱','Archives'],['⚙','Paramètres']];
+const pages=[['▦','Dashboard'],['▣','Produits'],['♙','Clients professionnels'],['⇄','Connexions SpeedArti'],['%','Remises'],['▥','Statistiques'],['▤','Documents'],['▱','Archives'],['⚙','Paramètres']];
 const names={in_stock:'En stock',low_stock:'Stock faible',out_of_stock:'Rupture',unknown:'Non communiqué'};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const euro=n=>(n/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
@@ -60,6 +61,11 @@ function clients(){
  return '<div class="title"><div><h1>Clients professionnels</h1><p>Identifiez les entreprises et associez leurs codes commerciaux.</p></div><button class="primary" data-action="new-client">＋ Nouvelle entreprise</button></div><div class="panel tablewrap"><table><thead><tr><th>Entreprise</th><th>Code client</th><th>E-mail professionnel</th><th>Rattachement</th><th>Actions</th></tr></thead><tbody>'+
  companies.map(c=>'<tr><td><b>'+esc(c.name)+'</b><small>'+esc(c.siret||'SIRET non renseigné')+'</small></td><td><b>'+esc(c.code)+'</b></td><td>'+esc(c.email)+'</td><td><span class="status unknown">NON BRANCHÉ</span></td><td><button class="ghost" data-action="edit-client" data-id="'+c.id+'">Modifier</button></td></tr>').join('')+'</tbody></table></div><p class="note">Le fournisseur n’accède jamais aux noms ou adresses des clients finaux des artisans. Association SpeedArti uniquement après validation.</p>';
 }
+function connections(){
+  return '<div class="title"><div><h1>Connexions à SpeedArti</h1><p>Rattachement des artisans par validation des deux parties, jamais automatiquement par e-mail ou code client.</p></div></div>'+
+  '<div class="panel"><h2>Demande de liaison</h2><p class="sub">Ce test génère uniquement une demande fictive non approuvée. Aucune synchronisation réelle.</p><div class="toolbar"><select id="link-company"><option value="">Choisir une entreprise cliente</option>'+companies.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+' — '+esc(c.code)+'</option>').join('')+'</select><button class="primary" data-action="new-link">Préparer la demande (démo)</button></div></div>'+
+  '<div class="panel"><h2>Demandes</h2>'+pendingLinks.map(l=>'<div class="line"><b>'+esc(l.name)+' — '+esc(l.code)+'</b><span class="status unknown">'+(l.revoked?'Révoquée':'En attente de validation artisan')+'</span>'+(l.revoked?'':'<button class="ghost" data-action="revoke-link" data-id="'+esc(l.id)+'">Révoquer</button>')+'</div>').join('')+(pendingLinks.length?'':'<p class="sub">Aucune demande. Connexion SpeedArti : NON BRANCHÉE.</p>')+'</div>';
+}
 function rebates(){
  return '<div class="title"><div><h1>Remises et prix négociés</h1><p>Par produit, sélection, catégorie ou catalogue complet ; en % ou prix net.</p></div><button class="primary" data-action="new-discount">＋ Nouvelle remise</button></div>'+
  '<div class="panel tablewrap"><table><thead><tr><th>Règle</th><th>Produits</th><th>Client</th><th>Valeur</th></tr></thead><tbody>'+discounts.map(d=>'<tr><td>'+esc(d.name)+'</td><td>'+esc(d.scope==='all'?'Tous les produits':d.scope==='category'?'Catégorie '+d.category:d.ids.length+' produits')+'</td><td>'+esc(d.customer||'Tous')+'</td><td>'+esc(d.mode==='percent'?d.value+' %':euro(d.value))+'</td></tr>').join('')+(!discounts.length?'<tr><td colspan="4">Aucune remise pour le moment.</td></tr>':'')+'</tbody></table></div>'+
@@ -80,7 +86,7 @@ function documents(){
  filtered.map(({product:p,doc:d})=>'<tr><td><a href="'+esc(d.url)+'" target="_blank" rel="noopener" download="'+esc(d.name)+'">📄 '+esc(d.name)+'</a></td><td><b>'+esc(p.name)+'</b><small>'+esc(p.ref)+(p.archived?' · Archivé':'')+'</small></td><td>Fiche technique</td><td><button class="ghost" data-action="edit-product" data-id="'+p.id+'" '+(p.archived?'disabled':'')+'>Fiche produit</button></td></tr>').join('')+(!filtered.length?'<tr><td colspan="4">Aucun document. Ouvrez une fiche produit pour joindre des PDF.</td></tr>':'')+'</tbody></table></div><p class="note">Documents fictifs conservés uniquement pendant la session. Stockage serveur : NON BRANCHÉ.</p></div>';
 }
 function settings(){return '<div class="title"><div><h1>Paramètres fournisseur</h1><p>Identité professionnelle et dépôt principal.</p></div></div><div class="panel fields"><label>Raison sociale<input disabled value="'+esc(supplier.name)+'"></label><label>SIRET<input disabled value="'+esc(supplier.siret)+'"></label><label>E-mail<input disabled value="'+esc(supplier.email)+'"></label><label>Dépot<input disabled value="DEPOT-01"></label><p class="note">Authentification fournisseur et modifications des paramètres : NON BRANCHÉES.</p></div>';}
-const views={'Dashboard':dashboard,'Produits':productTable,'Clients professionnels':clients,'Remises':rebates,'Statistiques':stats,'Documents':documents,'Archives':archive,'Paramètres':settings};
+const views={'Dashboard':dashboard,'Produits':productTable,'Clients professionnels':clients,'Connexions SpeedArti':connections,'Remises':rebates,'Statistiques':stats,'Documents':documents,'Archives':archive,'Paramètres':settings};
 function formField(label,name,value='',required=false){return '<label>'+esc(label)+'<input name="'+esc(name)+'" value="'+esc(value)+'" '+(required?'required':'')+'></label>';}
 function modalHTML(){
  if(!popup)return '';
@@ -123,6 +129,13 @@ document.addEventListener('click',function(e){
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.page){page=b.dataset.page;navOpen=false;render();return;}
  const a=b.dataset.action,idv=b.dataset.id,p=productById(idv);
+ if(a==='new-link'){
+   const select=document.getElementById('link-company'),company=companies.find(c=>c.id===select.value);
+   if(!company){saveMessage('Choisir une entreprise cliente');return}
+   pendingLinks.push({id:id(),companyId:company.id,name:company.name,code:company.code,revoked:false});
+   saveMessage('Demande fictive en attente. Aucun artisan contacté.');return;
+ }
+ if(a==='revoke-link'){const link=pendingLinks.find(l=>l.id===idv);if(link)link.revoked=true;saveMessage('Liaison fictive révoquée.');return}
  if(a==='enter-demo'){demoUnlocked=true;flash='';render();return}
  if(a==='logout-demo'){demoUnlocked=false;selected.clear();navOpen=false;page='Dashboard';flash='';render();return}
  if(a==='reset-account'){saveMessage('Réinitialisation NON BRANCHÉE — aucun e-mail envoyé.');return}
