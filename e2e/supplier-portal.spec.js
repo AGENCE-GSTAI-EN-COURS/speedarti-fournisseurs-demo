@@ -6,7 +6,8 @@ test('produit, stock, archive et restauration', async ({page})=>{
   await page.locator('[data-action="new-product"]').click();
   await page.locator('#edit-form input[name="ref"]').fill('E2E-TEST-001');
   await page.locator('#edit-form input[name="name"]').fill('Produit test automatisé');
-  await page.locator('#edit-form input[name="category"]').fill('Quincaillerie');
+  await page.locator('#edit-form select[name="category"]').selectOption('Quincaillerie');
+  await page.locator('#edit-form select[name="brand"]').selectOption('Démo');
   await page.locator('#edit-form input[name="price"]').fill('12,50');
   await page.locator('#edit-form button[type="submit"]').click();
   await expect(page.getByText('E2E-TEST-001')).toBeVisible();
@@ -54,4 +55,31 @@ test('statistiques explicites et non simulées sur mobile',async ({page})=>{
  await expect(page.getByText('Statistiques NON BRANCHÉES')).toBeVisible();
  await page.locator('[data-action="period"][data-days="30"]').click();
  await expect(page.getByText('Statistiques NON BRANCHÉES')).toBeVisible();
+});
+
+test('marque obligatoire, nouvelle marque, unité et fichiers liés',async ({page})=>{
+ await page.goto('/');
+ await page.locator('.nav [data-page="Produits"]').click();
+ await page.locator('[data-action="new-product"]').click();
+ await page.locator('#edit-form input[name="ref"]').fill('DOC-E2E-001');
+ await page.locator('#edit-form input[name="name"]').fill('Produit PDF et photo');
+ await page.locator('#edit-form input[name="price"]').fill('22,40');
+ await expect(page.locator('#edit-form select[name="category"]')).toHaveValue('');
+ await expect(page.locator('#edit-form select[name="brand"]')).toHaveValue('');
+ await page.locator('#edit-form select[name="category"]').selectOption('Couverture');
+ await page.locator('#edit-form select[name="brand"]').selectOption('__new__');
+ await page.locator('#edit-form input[name="brandNew"]').fill('Marque Nouvelle E2E');
+ await page.locator('#edit-form select[name="unit"]').selectOption('m2');
+ await page.locator('#photo-file').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:Buffer.from('89504e470d0a1a0a0000000d49484452','hex')});
+ await page.locator('#docs-file').setInputFiles({name:'notice-test.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n')});
+ await page.locator('#edit-form button[type="submit"]').click();
+ await expect(page.locator('tr').filter({hasText:'DOC-E2E-001'})).toContainText('Marque Nouvelle E2E');
+ await page.locator('tr').filter({hasText:'DOC-E2E-001'}).locator('[data-action="edit-product"]').click();
+ await expect(page.getByAltText('Photo du produit')).toBeVisible();
+ await expect(page.getByText('notice-test.pdf')).toBeVisible();
+ await page.locator('[data-action="close"]').first().click();
+ await page.locator('.nav [data-page="Documents"]').click();
+ await expect(page.getByText('notice-test.pdf')).toBeVisible();
+ await expect(page.getByText('DOC-E2E-001')).toBeVisible();
+ await page.locator('[data-action="document-search"]').click();
 });
