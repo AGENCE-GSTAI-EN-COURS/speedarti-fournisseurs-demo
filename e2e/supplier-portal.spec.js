@@ -116,3 +116,19 @@ test('supplier link request requires artisan confirmation and remains pending',a
  await page.locator('[data-action="revoke-link"]').click();
  await expect(page.getByText('Révoquée',{exact:true})).toBeVisible();
 });
+
+test('PWA can be installed with a scoped manifest and both icon sizes',async({page,request})=>{
+ await page.goto('/');
+ await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href','./manifest.webmanifest');
+ const r=await request.get('/manifest.webmanifest');
+ expect(r.ok()).toBeTruthy();
+ const manifest=await r.json();
+ expect(manifest.display).toBe('standalone');
+ expect(manifest.start_url).toBe('./');
+ expect(manifest.scope).toBe('./');
+ expect(manifest.icons.map(i=>i.sizes)).toContain('192x192');
+ expect(manifest.icons.map(i=>i.sizes)).toContain('512x512');
+ for(const i of manifest.icons){expect((await request.get('/'+i.src.replace('./',''))).ok()).toBeTruthy();}
+ expect((await request.get('/sw.js')).ok()).toBeTruthy();
+ expect((await request.get('/offline.html')).ok()).toBeTruthy();
+});
