@@ -1,6 +1,8 @@
 const {test,expect}=require('@playwright/test');
 test('produit, stock, archive et restauration', async ({page})=>{
   await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
+  await page.locator('[data-action="enter-demo"]').click();
   await expect(page.getByText('Bonjour, votre espace fournisseur')).toBeVisible();
   await page.locator('.nav [data-page="Produits"]').click();
   await page.locator('[data-action="new-product"]').click();
@@ -33,6 +35,7 @@ test('produit, stock, archive et restauration', async ({page})=>{
 });
 test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
  await page.locator('.nav [data-page="Clients professionnels"]').click();
  await page.locator('[data-action="new-client"]').click();
  await page.locator('#edit-form input[name="name"]').fill('Test Entreprise Démo');
@@ -50,6 +53,7 @@ test('fiche entreprise avec génération de code et remise',async ({page})=>{
 test('statistiques explicites et non simulées sur mobile',async ({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
  await page.locator('[data-action="menu"]').click();
  await page.locator('.nav [data-page="Statistiques"]').click();
  await expect(page.getByText('Statistiques NON BRANCHÉES')).toBeVisible();
@@ -59,6 +63,7 @@ test('statistiques explicites et non simulées sur mobile',async ({page})=>{
 
 test('marque obligatoire, nouvelle marque, unité et fichiers liés',async ({page})=>{
  await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
  await page.locator('.nav [data-page="Produits"]').click();
  await page.locator('[data-action="new-product"]').click();
  await page.locator('#edit-form input[name="ref"]').fill('DOC-E2E-001');

@@ -23,6 +23,7 @@ const rows=[
 let products=rows.map((x,i)=>({id:'p'+i,ref:x[0],name:x[1],category:x[2],price:x[3],qty:x[4],mode:'quantity',status:x[4]===0?'out_of_stock':x[4]<=5?'low_stock':'in_stock',archived:false,updated:today,brand:'Démo',unit:'unite',photo:null,documents:[]}));
 let companies=[{id:'c0',name:'Entreprise fictive ABC',code:'ABC-DEMO',email:'client@example.invalid',siret:'',phone:'',address:'',zip:'',city:''}];
 let discounts=[];
+let demoUnlocked=false;
 let selected=new Set(),page='Dashboard',search='',stockFilter='all',flash='',popup=null,navOpen=false,period=7,documentSearch='';
 const pages=[['▦','Dashboard'],['▣','Produits'],['♙','Clients professionnels'],['%','Remises'],['▥','Statistiques'],['▤','Documents'],['▱','Archives'],['⚙','Paramètres']];
 const names={in_stock:'En stock',low_stock:'Stock faible',out_of_stock:'Rupture',unknown:'Non communiqué'};
@@ -111,13 +112,20 @@ function modalHTML(){
  return '<div class="backdrop" id="backdrop"><div class="dialog" role="dialog" aria-modal="true"><div class="dialogtop"><h2>'+esc(kind==='product'?(item?'Modifier le produit':'Nouveau produit'):kind==='client'?'Fiche entreprise':'Nouvelle remise')+'</h2><button data-action="close" aria-label="Fermer">×</button></div><form id="edit-form" class="fields">'+fields+'<div class="formfooter">'+(kind==='client'?'<button type="button" data-action="code">Générer le code</button>':'')+'<button type="button" data-action="close">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></div></div>';
 }
 function render(){
+ if(!demoUnlocked){
+   document.getElementById('app').innerHTML='<main class="supplier-entry"><section class="supplier-entry-card"><div class="supplier-entry-logo"><span>S</span><div><b>SpeedArti</b><small>ESPACE FOURNISSEUR INDÉPENDANT</small></div></div><h1>Bienvenue dans votre espace fournisseur</h1><p>Un accès professionnel séparé de l’application SpeedArti des artisans.</p><form id="supplier-login"><label>E-mail professionnel<input type="email" name="email" autocomplete="username" required placeholder="vous@entreprise.fr"></label><label>Mot de passe<input type="password" name="password" autocomplete="current-password" required placeholder="Votre mot de passe"></label><button type="submit" class="primary">Se connecter</button></form><button class="supplier-reset" data-action="reset-account">Mot de passe oublié ?</button>'+(flash?'<div class="supplier-entry-error" role="alert">'+esc(flash)+'</div>':'')+'<div class="supplier-entry-divider">ESSAYER LA DÉMONSTRATION</div><button class="supplier-entry-demo" data-action="enter-demo">Découvrir la démo sans compte</button><p class="supplier-entry-foot">Connexion réelle : NON BRANCHÉE. Aucun identifiant n’est enregistré, aucun e-mail n’est envoyé. Catalogue fictif et données temporaires.</p></section></main>';
+   return;
+ }
  document.getElementById('app').innerHTML='<aside class="sidebar '+(navOpen?'open':'')+'"><div class="brand"><span class="s">S</span><div><b>SpeedArti</b><small>Espace fournisseur</small></div></div><div class="vendor"><b>Matériaux Démo</b><small>Fournisseur fictif · dépôt 01</small></div><nav class="nav">'+pages.map(([icon,name])=>'<button class="'+(page===name?'sel':'')+'" data-page="'+esc(name)+'"><span class="emoji">'+icon+'</span>'+name+(name==='Archives'&&products.filter(p=>p.archived).length?' ('+products.filter(p=>p.archived).length+')':'')+'</button>').join('')+'</nav><div class="bottom"><b>Mode démonstration</b><br>Aucune sauvegarde serveur.</div></aside>'+
- (navOpen?'<button class="shade" data-action="menu-close" aria-label="Fermer la navigation"></button>':'')+'<div class="right"><header class="top"><button class="menu" data-action="menu">☰</button><div><b>'+page+'</b><small>Gestion fournisseur</small></div><span class="pill">● Démo fictive</span></header><main class="content">'+(flash?'<div class="alert">'+esc(flash)+'<button data-action="clear">×</button></div>':'')+views[page]()+'</main></div>'+modalHTML();
+ (navOpen?'<button class="shade" data-action="menu-close" aria-label="Fermer la navigation"></button>':'')+'<div class="right"><header class="top"><button class="menu" data-action="menu">☰</button><div><b>'+page+'</b><small>Gestion fournisseur</small></div><span class="pill">● Démo fictive</span></header><div class="demo-mode-top">Mode démo : données fictives et temporaires <button data-action="logout-demo">Quitter la démo</button></div><main class="content">'+(flash?'<div class="alert">'+esc(flash)+'<button data-action="clear">×</button></div>':'')+views[page]()+'</main></div>'+modalHTML();
 }
 document.addEventListener('click',function(e){
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.page){page=b.dataset.page;navOpen=false;render();return;}
  const a=b.dataset.action,idv=b.dataset.id,p=productById(idv);
+ if(a==='enter-demo'){demoUnlocked=true;flash='';render();return}
+ if(a==='logout-demo'){demoUnlocked=false;selected.clear();navOpen=false;page='Dashboard';flash='';render();return}
+ if(a==='reset-account'){saveMessage('Réinitialisation NON BRANCHÉE — aucun e-mail envoyé.');return}
  if(a==='menu'){navOpen=true;render();return}
  if(a==='menu-close'){navOpen=false;render();return}
  if(a==='clear'){flash='';render();return}
@@ -169,6 +177,9 @@ document.addEventListener('change',function(e){
  if(a==='price'){const v=money(el.value);if(!Number.isSafeInteger(v)||v<0){saveMessage('Prix HT invalide');return;}p.price=v;render();return;}
 });
 document.addEventListener('submit',function(e){
+ if(e.target.id==='supplier-login'){
+   e.preventDefault();saveMessage('Connexion réelle NON BRANCHÉE — aucun compte n’a été connecté.');return;
+ }
  if(e.target.id!=='edit-form')return;
  e.preventDefault();const data=Object.fromEntries(new FormData(e.target));
  const k=popup.kind;
