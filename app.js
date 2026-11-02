@@ -86,7 +86,7 @@ function modalHTML(){
  const kind=popup.kind,item=popup.id?(kind==='product'?productById(popup.id):companies.find(c=>c.id===popup.id)):null;
  let fields='';
  if(kind==='product'){
-   const p=item||{ref:'',name:'',category:'',brand:'',unit:'unite',price:0,qty:0};
+   const p=item||{ref:'',name:'',category:'',brand:'',unit:'unite',price:0,qty:0,photo:null,documents:[]};
    const brands=[...new Set(products.map(x=>x.brand).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
    fields=formField('Référence *','ref',p.ref,true)+formField('Désignation *','name',p.name,true)+
    '<label>Catégorie SpeedArti *<select name="category" required><option value="">Choisir une catégorie</option>'+CATALOGUE_CATEGORIES.map(v=>'<option value="'+esc(v)+'" '+(p.category===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label>'+
@@ -134,6 +134,13 @@ document.addEventListener('click',function(e){
    form.elements.namedItem('code').value=candidate;return;
  }
  if(a==='search'){search=document.getElementById('search').value;render();return}
+ if(a==='document-search'){documentSearch=document.getElementById('document-search').value;render();return}
+ if(a==='remove-document'){
+   if(!popup||popup.kind!=='product'||!popup.id)return;
+   const pr=productById(popup.id),doc=pr.documents.find(d=>d.id===b.dataset.docId);
+   if(!doc)return;pr.documents=pr.documents.filter(d=>d.id!==doc.id);
+   URL.revokeObjectURL(doc.url);flash='PDF retiré de la fiche produit';render();return;
+ }
  if(a==='period'){period=Number(b.dataset.days);render();return}
  if(a==='upload'){saveMessage('NON BRANCHÉ : stockage PDF privé nécessaire.');return}
  if(a==='plus'||a==='minus'){
@@ -152,6 +159,11 @@ document.addEventListener('click',function(e){
 document.addEventListener('change',function(e){
  const el=e.target,a=el.dataset.action,idv=el.dataset.id,p=productById(idv);
  if(el.id==='stock-filter'){stockFilter=el.value;render();return}
+ if(el.id==='brand-select'){
+  const input=document.getElementById('brand-new');
+  document.getElementById('brand-new-field').hidden=el.value!=='__new__';
+  input.required=el.value==='__new__';return;
+ }
  if(a==='select'){el.checked?selected.add(idv):selected.delete(idv);render();return}
  if(a==='status'){p.mode='status';p.qty=null;p.status=el.value;p.updated=stamp();render();return}
  if(a==='price'){const v=money(el.value);if(!Number.isSafeInteger(v)||v<0){saveMessage('Prix HT invalide');return;}p.price=v;render();return;}
@@ -161,12 +173,32 @@ document.addEventListener('submit',function(e){
  e.preventDefault();const data=Object.fromEntries(new FormData(e.target));
  const k=popup.kind;
  if(k==='product'){
-   const v=money(data.price),quantity=Number(data.qty||0);if(!Number.isSafeInteger(v)||v<0){saveMessage('Prix HT invalide');return}
+   const v=money(data.price),quantity=Number(data.qty||0);
+   const category=String(data.category||'');
+   const brand=String(data.brand)==='__new__'?String(data.brandNew||'').trim():String(data.brand||'').trim();
+   if(!brand){saveMessage('Marque obligatoire');return}
+   if(!CATALOGUE_CATEGORIES.includes(category)){saveMessage('Choisir une catégorie du catalogue SpeedArti');return}
+   if(!SPEEDARTI_UNITS.includes(data.unit)){saveMessage('Choisir une unité SpeedArti');return}
+   if(!Number.isSafeInteger(v)||v<0){saveMessage('Prix HT invalide');return}
+   const photo=e.target.querySelector('#photo-file').files[0]||null;
+   const pdfs=[...e.target.querySelector('#docs-file').files];
+   try{validateSelectedFiles(photo,pdfs)}catch(error){saveMessage(error.message);return}
    const existing=products.find(p=>p.ref.toUpperCase()===String(data.ref).trim().toUpperCase()&&p.id!==popup.id);
    if(existing){saveMessage('Référence déjà existante');return}
    if(!popup.id&&(!Number.isSafeInteger(quantity)||quantity<0)){saveMessage('Stock initial invalide');return}
-   if(popup.id){const p=productById(popup.id);Object.assign(p,{ref:String(data.ref).trim().toUpperCase(),name:data.name,category:data.category||'Divers',brand:data.brand,price:v,unit:data.unit,updated:stamp()});}
-   else {products.unshift({id:id(),ref:String(data.ref).trim().toUpperCase(),name:data.name,category:data.category||'Divers',brand:data.brand,price:v,unit:data.unit,qty:quantity,mode:'quantity',status:quantity===0?'out_of_stock':quantity<=5?'low_stock':'in_stock',updated:stamp(),archived:false});}
+   let target;
+   if(popup.id){
+     target=productById(popup.id);
+     Object.assign(target,{ref:String(data.ref).trim().toUpperCase(),name:data.name,category,brand,price:v,unit:data.unit,updated:stamp()});
+   }else{
+     target={id:id(),ref:String(data.ref).trim().toUpperCase(),name:data.name,category,brand,price:v,unit:data.unit,qty:quantity,mode:'quantity',status:quantity===0?'out_of_stock':quantity<=5?'low_stock':'in_stock',updated:stamp(),archived:false,photo:null,documents:[]};
+     products.unshift(target);
+   }
+   if(photo){
+     if(target.photo)URL.revokeObjectURL(target.photo.url);
+     target.photo={name:photo.name,mimeType:photo.type,sizeBytes:photo.size,url:URL.createObjectURL(photo)};
+   }
+   pdfs.forEach(file=>target.documents.push({id:id(),productId:target.id,name:file.name,mimeType:file.type,sizeBytes:file.size,kind:'Fiche technique',url:URL.createObjectURL(file)}));
  }else if(k==='client'){
    const code=String(data.code).toUpperCase().trim(),email=String(data.email).trim(),siret=String(data.siret).replace(/\s/g,'');
    if(!code||companies.some(c=>c.code===code&&c.id!==popup.id)){saveMessage('Code client déjà utilisé ou invalide');return}
