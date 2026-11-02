@@ -1,7 +1,6 @@
 const {test,expect}=require('@playwright/test');
 test('produit, stock, archive et restauration', async ({page})=>{
   await page.goto('/');
- await page.locator('[data-action="enter-demo"]').click();
   await page.locator('[data-action="enter-demo"]').click();
   await expect(page.getByText('Bonjour, votre espace fournisseur')).toBeVisible();
   await page.locator('.nav [data-page="Produits"]').click();
@@ -87,4 +86,18 @@ test('marque obligatoire, nouvelle marque, unité et fichiers liés',async ({pag
  await expect(page.getByText('notice-test.pdf')).toBeVisible();
  await expect(page.getByText('DOC-E2E-001')).toBeVisible();
  await page.locator('[data-action="document-search"]').click();
+});
+
+test('independent login is visible and never accepts credentials in public demo',async({page})=>{
+ await page.goto('/');
+ await expect(page.getByText('Bienvenue dans votre espace fournisseur')).toBeVisible();
+ await expect(page.locator('.nav [data-page="Produits"]')).toHaveCount(0);
+ await page.locator('#supplier-login input[name="email"]').fill('fournisseur@example.invalid');
+ await page.locator('#supplier-login input[name="password"]').fill('not-a-real-password');
+ await page.locator('#supplier-login button[type="submit"]').click();
+ await expect(page.getByText('Connexion réelle NON BRANCHÉE')).toBeVisible();
+ await page.locator('[data-action="enter-demo"]').click();
+ await expect(page.locator('.nav [data-page="Produits"]')).toBeVisible();
+ await page.locator('[data-action="logout-demo"]').click();
+ await expect(page.locator('.nav [data-page="Produits"]')).toHaveCount(0);
 });
