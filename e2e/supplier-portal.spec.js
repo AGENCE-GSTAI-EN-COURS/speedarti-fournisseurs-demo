@@ -109,7 +109,7 @@ test('supplier link request requires artisan confirmation and remains pending',a
  await expect(page.getByText('Demande de liaison')).toBeVisible();
  await expect(page.getByText('Connexion SpeedArti : NON BRANCHÉE')).toBeVisible();
  await page.locator('[data-action="new-link"]').click();
- await expect(page.getByText('Choisir une entreprise cliente')).toBeVisible();
+ await expect(page.locator('.alert')).toContainText('Choisir une entreprise cliente');
  await page.locator('#link-company').selectOption('c0');
  await page.locator('[data-action="new-link"]').click();
  await expect(page.getByText('En attente de validation artisan')).toBeVisible();
