@@ -2,6 +2,16 @@
 'use strict';
 const today='2026-10-26T08:00:00.000Z';
 const supplier={name:'Matériaux Démo',siret:'00000000000000',email:'contact@example.invalid'};
+/* Demo category snapshot only; authoritative SpeedArti categories are dynamic (productsService.getCategories). */
+const CATALOGUE_CATEGORIES=['Charpente','Panneaux','Quincaillerie','Terrasse','Couverture','Maçonnerie'];
+const SPEEDARTI_UNITS=['m2','ml','unite','heure','forfait','kg','m3','lot','sac','tonne','u','barre','panneau','tole','boite','cartouche','pot','rouleau','big_bag','botte','volee','marche'];
+const PHOTO_MIME=['image/jpeg','image/png','image/webp'];
+const PHOTO_MAX=5*1024*1024,PDF_MAX=10*1024*1024;
+function validateSelectedFiles(photo,pdfs){
+ if(photo && (!PHOTO_MIME.includes(photo.type)||photo.size<=0||photo.size>PHOTO_MAX))throw Error('Photo : JPG, PNG ou WebP, 5 Mo maximum.');
+ for(const file of pdfs)if(file.type!=='application/pdf'||file.size<=0||file.size>PDF_MAX)throw Error('Documents : PDF de 10 Mo maximum par fichier.');
+}
+
 const rows=[
  ['DEMO-BOIS-001','Chevron Douglas 63 × 75','Charpente',980,32],
  ['DEMO-OSB-002','Panneau OSB 3 — 12 mm','Panneaux',1890,11],
@@ -10,10 +20,10 @@ const rows=[
  ['DEMO-TUI-005','Tuile mécanique terre cuite','Couverture',295,124],
  ['DEMO-MOR-006','Mortier colle sac 25 kg','Maçonnerie',1420,8]
 ];
-let products=rows.map((x,i)=>({id:'p'+i,ref:x[0],name:x[1],category:x[2],price:x[3],qty:x[4],mode:'quantity',status:x[4]===0?'out_of_stock':x[4]<=5?'low_stock':'in_stock',archived:false,updated:today,brand:'Démo',unit:'unite'}));
+let products=rows.map((x,i)=>({id:'p'+i,ref:x[0],name:x[1],category:x[2],price:x[3],qty:x[4],mode:'quantity',status:x[4]===0?'out_of_stock':x[4]<=5?'low_stock':'in_stock',archived:false,updated:today,brand:'Démo',unit:'unite',photo:null,documents:[]}));
 let companies=[{id:'c0',name:'Entreprise fictive ABC',code:'ABC-DEMO',email:'client@example.invalid',siret:'',phone:'',address:'',zip:'',city:''}];
 let discounts=[];
-let selected=new Set(),page='Dashboard',search='',stockFilter='all',flash='',popup=null,navOpen=false,period=7;
+let selected=new Set(),page='Dashboard',search='',stockFilter='all',flash='',popup=null,navOpen=false,period=7,documentSearch='';
 const pages=[['▦','Dashboard'],['▣','Produits'],['♙','Clients professionnels'],['%','Remises'],['▥','Statistiques'],['▤','Documents'],['▱','Archives'],['⚙','Paramètres']];
 const names={in_stock:'En stock',low_stock:'Stock faible',out_of_stock:'Rupture',unknown:'Non communiqué'};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -61,7 +71,13 @@ function archive(){
  const arr=products.filter(p=>p.archived);
  return '<div class="title"><div><h1>Archives</h1><p>Les produits archivés peuvent être restaurés à l’identique.</p></div></div><div class="panel tablewrap"><table><thead><tr><th>Produit</th><th>Référence</th><th>Action</th></tr></thead><tbody>'+arr.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.ref)+'</td><td><button class="ghost" data-action="restore" data-id="'+p.id+'">Restaurer</button></td></tr>').join('')+(!arr.length?'<tr><td colspan="3">Aucun produit archivé.</td></tr>':'')+'</tbody></table></div>';
 }
-function documents(){return '<div class="title"><div><h1>Fiches techniques et guides de pose</h1><p>Associez photos, notices et guides PDF à chaque produit.</p></div><button class="primary" data-action="upload">＋ Ajouter un document</button></div><div class="panel placeholder"><h3>Stockage sécurisé NON BRANCHÉ</h3><p>Les PDF et photos seront servis par une couche serveur à accès contrôlé. Cette démonstration ne simule aucune mise en ligne.</p></div>'}
+function documents(){
+ const all=products.flatMap(p=>(p.documents||[]).map(doc=>({product:p,doc})));
+ const filtered=all.filter(x=>(x.doc.name+' '+x.product.name+' '+x.product.ref).toLowerCase().includes(documentSearch.toLowerCase()));
+ return '<div class="title"><div><h1>Bibliothèque de documents</h1><p>Chaque PDF reste associé à un produit, y compris si le produit est archivé.</p></div><button class="primary" data-page="Produits">Ajouter depuis un produit</button></div>'+
+ '<div class="panel"><div class="toolbar"><input id="document-search" value="'+esc(documentSearch)+'" placeholder="Rechercher un produit, une référence ou un fichier…"><button class="ghost" data-action="document-search">Rechercher</button></div><div class="tablewrap"><table><thead><tr><th>Document PDF</th><th>Produit associé</th><th>Type</th><th>Action</th></tr></thead><tbody>'+
+ filtered.map(({product:p,doc:d})=>'<tr><td><a href="'+esc(d.url)+'" target="_blank" rel="noopener" download="'+esc(d.name)+'">📄 '+esc(d.name)+'</a></td><td><b>'+esc(p.name)+'</b><small>'+esc(p.ref)+(p.archived?' · Archivé':'')+'</small></td><td>Fiche technique</td><td><button class="ghost" data-action="edit-product" data-id="'+p.id+'" '+(p.archived?'disabled':'')+'>Fiche produit</button></td></tr>').join('')+(!filtered.length?'<tr><td colspan="4">Aucun document. Ouvrez une fiche produit pour joindre des PDF.</td></tr>':'')+'</tbody></table></div><p class="note">Documents fictifs conservés uniquement pendant la session. Stockage serveur : NON BRANCHÉ.</p></div>';
+}
 function settings(){return '<div class="title"><div><h1>Paramètres fournisseur</h1><p>Identité professionnelle et dépôt principal.</p></div></div><div class="panel fields"><label>Raison sociale<input disabled value="'+esc(supplier.name)+'"></label><label>SIRET<input disabled value="'+esc(supplier.siret)+'"></label><label>E-mail<input disabled value="'+esc(supplier.email)+'"></label><label>Dépot<input disabled value="DEPOT-01"></label><p class="note">Authentification fournisseur et modifications des paramètres : NON BRANCHÉES.</p></div>';}
 const views={'Dashboard':dashboard,'Produits':productTable,'Clients professionnels':clients,'Remises':rebates,'Statistiques':stats,'Documents':documents,'Archives':archive,'Paramètres':settings};
 function formField(label,name,value='',required=false){return '<label>'+esc(label)+'<input name="'+esc(name)+'" value="'+esc(value)+'" '+(required?'required':'')+'></label>';}
@@ -71,7 +87,19 @@ function modalHTML(){
  let fields='';
  if(kind==='product'){
    const p=item||{ref:'',name:'',category:'',brand:'',unit:'unite',price:0,qty:0};
-   fields=formField('Référence *','ref',p.ref,true)+formField('Désignation *','name',p.name,true)+formField('Catégorie','category',p.category)+formField('Marque','brand',p.brand)+formField('Prix HT (€) *','price',(p.price/100).toFixed(2),true)+formField('Unité *','unit',p.unit,true)+(item?'':formField('Stock initial','qty','0'));
+   const brands=[...new Set(products.map(x=>x.brand).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+   fields=formField('Référence *','ref',p.ref,true)+formField('Désignation *','name',p.name,true)+
+   '<label>Catégorie SpeedArti *<select name="category" required><option value="">Choisir une catégorie</option>'+CATALOGUE_CATEGORIES.map(v=>'<option value="'+esc(v)+'" '+(p.category===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label>'+
+   '<label>Marque *<select id="brand-select" name="brand" required><option value="">Choisir une marque</option>'+brands.map(v=>'<option value="'+esc(v)+'" '+(p.brand===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="__new__">＋ Ajouter une marque</option></select></label>'+
+   '<label id="brand-new-field" hidden>Nouvelle marque *<input id="brand-new" name="brandNew" placeholder="Nom du fabricant"></label>'+
+   formField('Prix HT (€) *','price',(p.price/100).toFixed(2),true)+
+   '<label>Unité SpeedArti *<select name="unit" required><option value="">Choisir une unité</option>'+SPEEDARTI_UNITS.map(v=>'<option value="'+v+'" '+(p.unit===v?'selected':'')+'>'+v+'</option>').join('')+'</select></label>'+
+   (item?'':formField('Stock initial','qty','0'))+
+   '<div class="media-zone"><h3>Photo du produit</h3>'+(p.photo?'<img class="media-preview" src="'+esc(p.photo.url)+'" alt="Photo du produit">':'<p class="sub">Aucune photo pour le moment</p>')+
+   '<input type="file" name="photo" id="photo-file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG ou WebP — 5 Mo max.</small></div>'+
+   '<div class="media-zone"><h3>Documents associés</h3><input type="file" name="pdfs" id="docs-file" multiple accept="application/pdf"><small>Plusieurs PDF possibles — 10 Mo max. chacun.</small>'+
+   (p.documents.length?'<div class="linked-docs">'+p.documents.map(d=>'<div class="linked-doc"><a href="'+esc(d.url)+'" target="_blank" rel="noopener" download="'+esc(d.name)+'">📄 '+esc(d.name)+'</a><button type="button" data-action="remove-document" data-doc-id="'+d.id+'">Retirer</button></div>').join('')+'</div>':'<p class="sub">Les fichiers seront également visibles dans Documents.</p>')+
+   '</div>';
  }else if(kind==='client'){
    const c=item||{name:'',code:'',email:'',siret:'',phone:'',address:'',zip:'',city:''};
    fields=formField('Raison sociale *','name',c.name,true)+formField('E-mail professionnel *','email',c.email,true)+formField('SIRET','siret',c.siret)+formField('Téléphone','phone',c.phone)+formField('Adresse','address',c.address)+formField('Code postal','zip',c.zip)+formField('Ville','city',c.city)+formField('Code client *','code',c.code,true);
