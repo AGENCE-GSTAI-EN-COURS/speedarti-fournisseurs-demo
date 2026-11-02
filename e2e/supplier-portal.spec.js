@@ -101,3 +101,18 @@ test('independent login is visible and never accepts credentials in public demo'
  await page.locator('[data-action="logout-demo"]').click();
  await expect(page.locator('.nav [data-page="Produits"]')).toHaveCount(0);
 });
+
+test('supplier link request requires artisan confirmation and remains pending',async({page})=>{
+ await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Connexions SpeedArti"]').click();
+ await expect(page.getByText('Demande de liaison')).toBeVisible();
+ await expect(page.getByText('Connexion SpeedArti : NON BRANCHÉE')).toBeVisible();
+ await page.locator('[data-action="new-link"]').click();
+ await expect(page.getByText('Choisir une entreprise cliente')).toBeVisible();
+ await page.locator('#link-company').selectOption('c0');
+ await page.locator('[data-action="new-link"]').click();
+ await expect(page.getByText('En attente de validation artisan')).toBeVisible();
+ await page.locator('[data-action="revoke-link"]').click();
+ await expect(page.getByText('Révoquée')).toBeVisible();
+});
