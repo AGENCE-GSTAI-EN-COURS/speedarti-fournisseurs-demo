@@ -114,5 +114,5 @@ test('supplier link request requires artisan confirmation and remains pending',a
  await page.locator('[data-action="new-link"]').click();
  await expect(page.getByText('En attente de validation artisan')).toBeVisible();
  await page.locator('[data-action="revoke-link"]').click();
- await expect(page.getByText('Révoquée')).toBeVisible();
+ await expect(page.getByText('Révoquée',{exact:true})).toBeVisible();
 });
