@@ -157,3 +157,35 @@ test('simule un premier transfert complet puis des deltas sans envoyer de donné
  await expect(page.getByText('0 modification(s), 0 lot(s)')).toBeVisible();
  await expect(page.getByText(/Aucun envoi à SpeedArti/)).toBeVisible();
 });
+
+test('création et modification avec métier étendu, catégorie personnelle et désignation large',async({page})=>{
+ await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Produits"]').click();
+ await page.locator('[data-action="new-product"]').click();
+ const description=page.locator('#edit-form textarea[name="name"]');
+ await expect(description).toHaveAttribute('rows','4');
+ const height=await description.evaluate(el=>el.getBoundingClientRect().height);
+ expect(height).toBeGreaterThan(110);
+ await expect(page.locator('#trade-select option')).toHaveCount(38);
+ await page.locator('#edit-form input[name="ref"]').fill('V3-CAT-E2E');
+ await description.fill('Tableau électrique complet avec protections, caractéristiques techniques et équipements de fixation');
+ await page.locator('#trade-select').selectOption('Électricité');
+ await page.locator('#category-select').selectOption('Électricité / Tableaux électriques');
+ await page.locator('#edit-form select[name="brand"]').selectOption('Démo');
+ await page.locator('#edit-form input[name="price"]').fill('159,90');
+ await page.locator('#edit-form button[type="submit"]').click();
+ const row=page.locator('tr').filter({hasText:'V3-CAT-E2E'});
+ await expect(row).toBeVisible();
+ await row.locator('[data-action="edit-product"]').click();
+ await expect(page.locator('#trade-select')).toHaveValue('Électricité');
+ await expect(page.locator('#category-select')).toHaveValue('Électricité / Tableaux électriques');
+ await page.locator('#category-select').selectOption('__custom__');
+ await expect(page.locator('#custom-category')).toBeVisible();
+ await page.locator('#custom-category').fill('Coffrets spéciaux');
+ await page.locator('#edit-form button[type="submit"]').click();
+ await row.locator('[data-action="edit-product"]').click();
+ await expect(page.locator('#trade-select')).toHaveValue('Électricité');
+ await expect(page.locator('#category-select')).toHaveValue('__custom__');
+ await expect(page.locator('#custom-category')).toHaveValue('Coffrets spéciaux');
+});
