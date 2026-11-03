@@ -78,3 +78,8 @@
 .stock-refresh-demo table{min-width:550px}
 .stock-refresh-demo button{margin-top:8px}
 @media(max-width:760px){.stock-refresh-demo .import-controls{grid-template-columns:1fr}.stock-refresh-demo .toolbar input[type=file]{min-width:0;width:100%}}
+
+/* Keep product editing intact and show actionable save errors inside the dialog. */
+.form-save-error{grid-column:1/-1;display:block;background:#fff3ef;color:#9b3028;border:1px solid #f1bcb1;padding:12px 14px;border-radius:9px;font-size:13px;line-height:1.5;font-weight:600}
+.form-save-error[hidden]{display:none}
+#edit-form [aria-invalid="true"]{border-color:#d64536;outline:2px solid #f3b1a8;outline-offset:1px}
