@@ -497,8 +497,7 @@ document.addEventListener('submit',function(e){
  if(k==='product'){
   // Avoid hiding a successful addition behind a previously active search or stock filter.
   page='Produits';search='';stockFilter='all';
-  const ref=String(data.ref||'').trim().toUpperCase();
-  flash=(popup.id?'Produit '+ref+' modifié.':'Produit '+ref+' ajouté au catalogue.')+' Démonstration uniquement, sans sauvegarde serveur.';
+  flash=(popup.id?'Produit modifié.':'Produit ajouté au catalogue et affiché ci-dessous.')+' Démonstration uniquement, sans sauvegarde serveur.';
  }else flash='Enregistré dans la démo en mémoire uniquement';
  popup=null;render();
 });
