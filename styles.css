@@ -40,3 +40,23 @@
 .fields [hidden]{display:none!important}
 .category-note{font-size:11px;color:#6b7f99;line-height:1.5;margin:0}
 @media(max-width:760px){.product-dialog{width:100%;max-height:95vh}.fields textarea{min-height:150px}}
+
+/* Supplier-only CSV demo and optional SKU generation. Full XLSX wizard lives in private React. */
+.import-header-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.public-ref-input{display:flex;gap:8px;align-items:center}
+.public-ref-input input{min-width:0;flex:1}
+.public-ref-input button{font-size:12px;padding:9px;border:1px solid #c8d9f1;background:#e9f2ff;color:#145cae;border-radius:8px}
+.import-demo{border:1px solid #bed6f7;padding:20px}
+.import-demo h2{font-size:19px;color:#1a456f}
+.import-demo .toolbar input[type=file]{border:1px solid #dbe4f2;padding:10px;border-radius:8px;max-width:100%}
+.import-template{background:#edf5ff;border:1px solid #c8dcf9;border-radius:8px;padding:10px;color:#1464bd;text-decoration:none;font-size:12px;font-weight:700}
+.import-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:13px 0}
+.import-controls label{display:grid;gap:7px;font-size:12px;font-weight:600;color:#3b577a}
+.import-controls input,.import-controls select{border:1px solid #d8e3f3;border-radius:8px;padding:9px;min-width:0;max-width:100%;font-size:12px;color:#244b73}
+.import-controls .import-checkbox{display:flex;align-items:center;gap:8px}
+.import-controls .import-checkbox input{width:16px;height:16px}
+.import-message{background:#eaf4ff;border:1px solid #c7def9;border-radius:8px;padding:12px;color:#225c96;font-size:12px;line-height:1.5}
+.import-summary{font-size:12px;color:#245d8f;font-weight:700;margin:15px 0}
+.import-demo table{margin-bottom:13px}
+.import-demo table td{font-size:12px}
+@media(max-width:760px){.import-header-actions{margin-top:13px}.import-controls{grid-template-columns:1fr}.import-demo{padding:13px}}
