@@ -258,3 +258,48 @@ test('stock-only file refresh preserves price and schedule is never activated',a
  await page.locator('.nav [data-page="Produits"]').click();
  await expect(page.locator('tr').filter({hasText:'DEMO-BOIS-001'}).locator('input[data-action="price"]')).toHaveValue('9,80');
 });
+
+test('une référence déjà utilisée conserve tous les champs et affiche une erreur visible',async({page})=>{
+ await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Produits"]').click();
+ await page.locator('[data-action="new-product"]').click();
+ const form=page.locator('#edit-form');
+ await form.locator('[name="ref"]').fill('DEMO-BOIS-001');
+ await form.locator('textarea[name="name"]').fill('Désignation longue à conserver après erreur');
+ await page.locator('#trade-select').selectOption('Couverture');
+ await page.locator('#category-select').selectOption('Couverture / Tuiles terre cuite');
+ await form.locator('[name="brand"]').selectOption('Démo');
+ await form.locator('[name="price"]').fill('13,80');
+ await form.locator('[type="submit"]').click();
+ await expect(form.locator('#form-save-error')).toContainText('référence existe déjà');
+ await expect(form.locator('[name="ref"]')).toHaveValue('DEMO-BOIS-001');
+ await expect(form.locator('textarea[name="name"]')).toHaveValue('Désignation longue à conserver après erreur');
+ await expect(page.locator('#trade-select')).toHaveValue('Couverture');
+ await expect(page.locator('#category-select')).toHaveValue('Couverture / Tuiles terre cuite');
+ await expect(form.locator('[name="price"]')).toHaveValue('13,80');
+ await form.locator('[name="ref"]').fill('TEST-CORRIGE-01');
+ await form.locator('[type="submit"]').click();
+ await expect(form).toHaveCount(0);
+ await expect(page.locator('tr').filter({hasText:'TEST-CORRIGE-01'})).toBeVisible();
+ await expect(page.locator('.alert')).toContainText('Produit TEST-CORRIGE-01 ajouté au catalogue');
+});
+
+test('un produit ajouté reste visible même avec un ancien filtre de recherche',async({page})=>{
+ await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Produits"]').click();
+ await page.locator('#search').fill('RÉFÉRENCE-ABSENTE-DU-CATALOGUE');
+ await page.locator('[data-action="search"]').click();
+ await expect(page.getByText('Aucun produit correspondant.')).toBeVisible();
+ await page.locator('[data-action="new-product"]').click();
+ const form=page.locator('#edit-form');
+ await form.locator('[name="ref"]').fill('TEST-VISIBLE-2026');
+ await form.locator('textarea[name="name"]').fill('Produit enregistré et visible');
+ await page.locator('#trade-select').selectOption('__legacy__');
+ await page.locator('#category-select').selectOption('Quincaillerie');
+ await form.locator('[name="brand"]').selectOption('Démo');
+ await form.locator('[name="price"]').fill('12,50');
+ await form.locator('[type="submit"]').click();
+ await expect(page.locator('#search')).toHaveValue('');
+ await expect(page.locator('tr').filter({hasText:'TEST-VISIBLE-2026'})).toBeVisible();
+ await expect(page.locator('.alert')).toContainText('ajouté au catalogue');
+});
