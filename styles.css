@@ -31,3 +31,12 @@
 .demo-mode-top{background:#163f70;color:white;padding:8px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}
 .demo-mode-top button{background:none;border:1px solid #8db6e1;border-radius:7px;color:white;padding:7px 10px}
 @media(max-width:760px){.supplier-entry-card{padding:23px}.demo-mode-top{padding:8px 12px;font-size:10px}}
+
+/* Product form: extended designation and 35 métier families. */
+.product-dialog{width:min(820px,calc(100vw - 24px));max-width:820px}
+.fields .form-wide{grid-column:1/-1}
+.fields textarea{width:100%;min-height:144px;resize:vertical;border:1px solid #dce6f3;border-radius:9px;padding:12px 14px;color:#254464;font:14px/1.55 inherit;font-family:inherit}
+.fields select{min-width:0;max-width:100%;width:100%}
+.fields [hidden]{display:none!important}
+.category-note{font-size:11px;color:#6b7f99;line-height:1.5;margin:0}
+@media(max-width:760px){.product-dialog{width:100%;max-height:95vh}.fields textarea{min-height:150px}}
