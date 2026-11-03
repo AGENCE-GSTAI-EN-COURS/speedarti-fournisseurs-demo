@@ -38,7 +38,7 @@ test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await page.locator('[data-action="enter-demo"]').click();
  await page.locator('.nav [data-page="Clients professionnels"]').click();
  await page.locator('[data-action="new-client"]').click();
- await page.locator('#edit-form textarea[name="name"]').fill('Test Entreprise Démo');
+ await page.locator('#edit-form input[name="name"]').fill('Test Entreprise Démo');
  await page.locator('#edit-form input[name="email"]').fill('test@example.invalid');
  await page.locator('#edit-form [data-action="code"]').click();
  await expect(page.locator('#edit-form input[name="code"]')).not.toHaveValue('');
@@ -46,7 +46,7 @@ test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await expect(page.getByText('Test Entreprise Démo')).toBeVisible();
  await page.locator('.nav [data-page="Remises"]').click();
  await page.locator('[data-action="new-discount"]').click();
- await page.locator('#edit-form textarea[name="name"]').fill('Remise automatique 5 %');
+ await page.locator('#edit-form input[name="name"]').fill('Remise automatique 5 %');
  await page.locator('#edit-form button[type="submit"]').click();
  await expect(page.getByText('Remise automatique 5 %')).toBeVisible();
 });
