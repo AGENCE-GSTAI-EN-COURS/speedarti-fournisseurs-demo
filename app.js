@@ -432,6 +432,15 @@ document.addEventListener('change',function(e){
  if(a==='status'){p.mode='status';p.qty=null;p.status=el.value;p.updated=stamp();render();return}
  if(a==='price'){const v=money(el.value);if(!Number.isSafeInteger(v)||v<0){saveMessage('Prix HT invalide');return;}p.price=v;render();return;}
 });
+function showFormValidationError(form,message,fieldName){
+ // Never rerender an open form on validation failure: rerendering wipes all user entries.
+ let alert=form.querySelector('#form-save-error');
+ if(!alert){alert=document.createElement('div');alert.id='form-save-error';alert.className='form-save-error';alert.setAttribute('role','alert');alert.setAttribute('aria-live','assertive');form.insertBefore(alert,form.firstChild);}
+ alert.textContent=message;alert.hidden=false;
+ const field=fieldName?form.elements.namedItem(fieldName):null;
+ if(field&&typeof field.focus==='function'){field.focus({preventScroll:true});field.setAttribute('aria-invalid','true');}
+ alert.scrollIntoView({block:'nearest',behavior:'instant'});
+}
 document.addEventListener('submit',function(e){
  if(e.target.id==='supplier-login'){
    e.preventDefault();saveMessage('Connexion réelle NON BRANCHÉE — aucun compte n’a été connecté.');return;
@@ -441,25 +450,29 @@ document.addEventListener('submit',function(e){
  const k=popup.kind;
  if(k==='product'){
    const v=money(data.price),quantity=Number(data.qty||0);
+   const reference=String(data.ref||'').trim().toUpperCase();
+   const designation=String(data.name||'').trim();
+   if(!reference){showFormValidationError(e.target,'La référence du produit est obligatoire.','ref');return}
+   if(!designation){showFormValidationError(e.target,'La désignation du produit est obligatoire.','name');return}
    const rawCategory=String(data.category||'');
    const category=rawCategory==='__custom__'?(String(data.trade)==='__other__'?'':String(data.trade)+' / ')+String(data.customCategory||'').trim():rawCategory;
    const brand=String(data.brand)==='__new__'?String(data.brandNew||'').trim():String(data.brand||'').trim();
-   if(!brand){saveMessage('Marque obligatoire');return}
-   if(!category.trim()||category.length>150){saveMessage('Choisir ou saisir une catégorie valide');return}
-   if(!SPEEDARTI_UNITS.includes(data.unit)){saveMessage('Choisir une unité SpeedArti');return}
-   if(!Number.isSafeInteger(v)||v<0){saveMessage('Prix HT invalide');return}
+   if(!brand){showFormValidationError(e.target,'Marque obligatoire : sélectionnez une marque ou ajoutez-en une.','brand');return}
+   if(!category.trim()||category.length>150){showFormValidationError(e.target,'Choisissez une catégorie valide, ou saisissez une catégorie personnalisée.','category');return}
+   if(!SPEEDARTI_UNITS.includes(data.unit)){showFormValidationError(e.target,'Choisissez une unité reconnue.','unit');return}
+   if(!Number.isSafeInteger(v)||v<0){showFormValidationError(e.target,'Prix HT invalide : saisissez par exemple 12,50.','price');return}
    const photo=e.target.querySelector('#photo-file').files[0]||null;
    const pdfs=[...e.target.querySelector('#docs-file').files];
-   try{validateSelectedFiles(photo,pdfs)}catch(error){saveMessage(error.message);return}
-   const existing=products.find(p=>p.ref.toUpperCase()===String(data.ref).trim().toUpperCase()&&p.id!==popup.id);
-   if(existing){saveMessage('Référence déjà existante');return}
-   if(!popup.id&&(!Number.isSafeInteger(quantity)||quantity<0)){saveMessage('Stock initial invalide');return}
+   try{validateSelectedFiles(photo,pdfs)}catch(error){showFormValidationError(e.target,error.message);return}
+   const existing=products.find(p=>p.ref.toUpperCase()===reference&&p.id!==popup.id);
+   if(existing){showFormValidationError(e.target,'Cette référence existe déjà : choisissez une autre référence ou utilisez Modifier.','ref');return}
+   if(!popup.id&&(!Number.isSafeInteger(quantity)||quantity<0)){showFormValidationError(e.target,'Stock initial invalide : indiquez un entier positif.','qty');return}
    let target;
    if(popup.id){
      target=productById(popup.id);
-     Object.assign(target,{ref:String(data.ref).trim().toUpperCase(),name:data.name,category,brand,price:v,unit:data.unit,updated:stamp()});
+     Object.assign(target,{ref:reference,name:designation,category,brand,price:v,unit:data.unit,updated:stamp()});
    }else{
-     target={id:id(),ref:String(data.ref).trim().toUpperCase(),name:data.name,category,brand,price:v,unit:data.unit,qty:quantity,mode:'quantity',status:quantity===0?'out_of_stock':quantity<=5?'low_stock':'in_stock',updated:stamp(),archived:false,photo:null,documents:[]};
+     target={id:id(),ref:reference,name:designation,category,brand,price:v,unit:data.unit,qty:quantity,mode:'quantity',status:quantity===0?'out_of_stock':quantity<=5?'low_stock':'in_stock',updated:stamp(),archived:false,photo:null,documents:[]};
      products.unshift(target);
    }
    if(photo){
@@ -481,7 +494,13 @@ document.addEventListener('submit',function(e){
    if(data.scope==='selected'&&!selected.size){saveMessage('Aucun produit sélectionné');return}
    discounts.push({id:id(),name:data.name,scope:data.scope,category:data.category,customer:data.customer,mode:data.mode,value,ids:[...selected]});
  }
- popup=null;flash='Enregistré dans la démo en mémoire uniquement';render();
+ if(k==='product'){
+  // Avoid hiding a successful addition behind a previously active search or stock filter.
+  page='Produits';search='';stockFilter='all';
+  const ref=String(data.ref||'').trim().toUpperCase();
+  flash=(popup.id?'Produit '+ref+' modifié.':'Produit '+ref+' ajouté au catalogue.')+' Démonstration uniquement, sans sauvegarde serveur.';
+ }else flash='Enregistré dans la démo en mémoire uniquement';
+ popup=null;render();
 });
 render();
 
