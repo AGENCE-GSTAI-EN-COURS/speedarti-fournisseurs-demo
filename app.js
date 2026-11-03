@@ -119,7 +119,30 @@ function rebates(){
  '<div class="panel"><h2>Aperçu des prix catalogue</h2>'+active().slice(0,4).map(p=>'<div class="line"><span>'+esc(p.name)+'</span><b>'+euro(discountPrice(p,''))+'</b></div>').join('')+'<p class="note">Remises non cumulables. Les prix client spécifiques sont visibles uniquement par l’entreprise autorisée.</p></div>';
 }
 function stats(){
- return '<div class="title"><div><h1>Statistiques anonymisées</h1><p>Consultations et ajouts confirmés dans les documents.</p></div><div class="toolbar"><button class="ghost" data-action="period" data-days="7">7 jours'+(period===7?' ✓':'')+'</button><button class="ghost" data-action="period" data-days="30">30 jours'+(period===30?' ✓':'')+'</button></div></div><div class="tiles">'+['Consultations','Ajouts au devis','Ajouts à la facture','Ajouts aux commandes'].map(k=>'<div class="tile"><small>'+k+'</small><strong>—</strong></div>').join('')+'</div><div class="panel placeholder"><h3>Statistiques NON BRANCHÉES</h3><p>Seules les actions réellement remontées par les futurs connecteurs SpeedArti pourront alimenter ces indicateurs. Aucun nom de client final, numéro de devis ou adresse de chantier.</p></div>';
+ // Completely fictitious aggregates, with no live events, account IDs or personal data.
+ const wide=period===30;
+ const sample=wide?{
+  views:2140,quotes:263,invoices:89,orders:37,days:['S1','S2','S3','S4'],visits:[450,510,575,605],
+  actions:[42,56,81,84]
+ }:{
+  views:486,quotes:64,invoices:21,orders:8,days:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],
+  visits:[44,63,71,58,86,90,74],actions:[5,8,10,7,12,14,8]
+ };
+ const cards=[
+  ['Consultations de produits',sample.views,'eye'],['Ajouts aux devis',sample.quotes,'file-text'],
+  ['Ajouts aux factures',sample.invoices,'receipt'],['Produits commandés',sample.orders,'shopping-cart']
+ ];
+ const max=Math.max(...sample.visits);
+ const top=[['DEMO-TUI-005','Tuile mécanique',35],['DEMO-BOIS-001','Chevron Douglas',29],['DEMO-OSB-002','Panneau OSB 3',22],['DEMO-VIS-003','Vis inox',14]];
+ return '<div class="title"><div><h1>Statistiques anonymisées</h1><p>Exemple visuel du futur suivi de votre catalogue fournisseur.</p></div><div class="toolbar"><button class="ghost" data-action="period" data-days="7">7 jours'+(period===7?' ✓':'')+'</button><button class="ghost" data-action="period" data-days="30">30 jours'+(period===30?' ✓':'')+'</button></div></div>'+
+ '<div class="stats-warning"><b>SIMULATION — DONNÉES FICTIVES</b><span>Chiffres inventés pour la démonstration. Aucun client réel, aucune commande réelle et aucune donnée provenant de SpeedArti.</span></div>'+
+ '<div class="stats-kpis">'+cards.map(([label,value])=>'<article class="stats-kpi"><small>'+esc(label)+'</small><strong>'+Number(value).toLocaleString('fr-FR')+'</strong><span>Exemple anonymisé · '+period+' jours</span></article>').join('')+'</div>'+
+ '<div class="stats-layout"><section class="panel stats-panel"><h2>Évolution des consultations</h2><p class="sub">Volume fictif, sans identification des artisans.</p>'+
+ '<div class="stats-chart">'+sample.days.map((label,i)=>'<div class="stats-chart-col"><div class="stats-chart-value">'+sample.visits[i]+'</div><div class="stats-bar-track"><div class="stats-bar" style="height:'+Math.round(sample.visits[i]/max*100)+'%"></div></div><small>'+esc(label)+'</small></div>').join('')+'</div></section>'+
+ '<section class="panel stats-panel"><h2>Produits les plus consultés</h2><p class="sub">Classement fictif, sans nom de client.</p>'+
+ top.map(([ref,name,value],index)=>'<div class="stats-product-row"><b>'+String(index+1).padStart(2,'0')+'</b><span><strong>'+esc(name)+'</strong><small>'+esc(ref)+'</small></span><div class="stats-progress"><i style="width:'+value+'%"></i></div><em>'+value+' %</em></div>').join('')+
+ '</section></div>'+
+ '<section class="panel stats-panel"><h2>Ce que nous pourrons mesurer plus tard</h2><p class="sub">Consommation des fiches produit, ajouts aux devis, factures et commandes, regroupés par période. Jamais de noms de clients finaux, numéros de devis ou adresses de chantier.</p><div class="stats-not-connected">Statistiques NON BRANCHÉES — aucune activité réelle n’est collectée par cette démonstration.</div></section>';
 }
 function archive(){
  const arr=products.filter(p=>p.archived);
