@@ -60,3 +60,11 @@
 .import-demo table{margin-bottom:13px}
 .import-demo table td{font-size:12px}
 @media(max-width:760px){.import-header-actions{margin-top:13px}.import-controls{grid-template-columns:1fr}.import-demo{padding:13px}}
+
+/* Long import label must never overlap "Nouveau produit" at laptop/mobile widths. */
+.content .title{min-width:0;flex-wrap:wrap;align-items:center}
+.content .title>div:first-child{min-width:0;flex:1 1 280px}
+.import-header-actions{display:flex;flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end;gap:10px;min-width:0}
+.import-header-actions>button{position:static!important;display:inline-flex;align-items:center;justify-content:center;white-space:normal;line-height:1.25;min-height:42px;max-width:100%;flex:0 1 auto}
+@media(max-width:1000px){.content .title{align-items:stretch}.import-header-actions{flex:1 1 100%;justify-content:flex-start}}
+@media(max-width:500px){.import-header-actions{display:grid;grid-template-columns:1fr;gap:9px}.import-header-actions>button{width:100%}}
