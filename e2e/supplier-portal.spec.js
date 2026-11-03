@@ -6,7 +6,8 @@ test('produit, stock, archive et restauration', async ({page})=>{
   await page.locator('.nav [data-page="Produits"]').click();
   await page.locator('[data-action="new-product"]').click();
   await page.locator('#edit-form input[name="ref"]').fill('E2E-TEST-001');
-  await page.locator('#edit-form input[name="name"]').fill('Produit test automatisé');
+  await page.locator('#edit-form textarea[name="name"]').fill('Produit test automatisé');
+  await page.locator('#trade-select').selectOption('__legacy__');
   await page.locator('#edit-form select[name="category"]').selectOption('Quincaillerie');
   await page.locator('#edit-form select[name="brand"]').selectOption('Démo');
   await page.locator('#edit-form input[name="price"]').fill('12,50');
@@ -37,7 +38,7 @@ test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await page.locator('[data-action="enter-demo"]').click();
  await page.locator('.nav [data-page="Clients professionnels"]').click();
  await page.locator('[data-action="new-client"]').click();
- await page.locator('#edit-form input[name="name"]').fill('Test Entreprise Démo');
+ await page.locator('#edit-form textarea[name="name"]').fill('Test Entreprise Démo');
  await page.locator('#edit-form input[name="email"]').fill('test@example.invalid');
  await page.locator('#edit-form [data-action="code"]').click();
  await expect(page.locator('#edit-form input[name="code"]')).not.toHaveValue('');
@@ -45,7 +46,7 @@ test('fiche entreprise avec génération de code et remise',async ({page})=>{
  await expect(page.getByText('Test Entreprise Démo')).toBeVisible();
  await page.locator('.nav [data-page="Remises"]').click();
  await page.locator('[data-action="new-discount"]').click();
- await page.locator('#edit-form input[name="name"]').fill('Remise automatique 5 %');
+ await page.locator('#edit-form textarea[name="name"]').fill('Remise automatique 5 %');
  await page.locator('#edit-form button[type="submit"]').click();
  await expect(page.getByText('Remise automatique 5 %')).toBeVisible();
 });
@@ -66,10 +67,11 @@ test('marque obligatoire, nouvelle marque, unité et fichiers liés',async ({pag
  await page.locator('.nav [data-page="Produits"]').click();
  await page.locator('[data-action="new-product"]').click();
  await page.locator('#edit-form input[name="ref"]').fill('DOC-E2E-001');
- await page.locator('#edit-form input[name="name"]').fill('Produit PDF et photo');
+ await page.locator('#edit-form textarea[name="name"]').fill('Produit PDF et photo');
  await page.locator('#edit-form input[name="price"]').fill('22,40');
  await expect(page.locator('#edit-form select[name="category"]')).toHaveValue('');
  await expect(page.locator('#edit-form select[name="brand"]')).toHaveValue('');
+ await page.locator('#trade-select').selectOption('__legacy__');
  await page.locator('#edit-form select[name="category"]').selectOption('Couverture');
  await page.locator('#edit-form select[name="brand"]').selectOption('__new__');
  await page.locator('#edit-form input[name="brandNew"]').fill('Marque Nouvelle E2E');
