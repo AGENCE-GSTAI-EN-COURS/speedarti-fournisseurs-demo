@@ -227,6 +227,45 @@ document.addEventListener('click',function(e){
  if(a==='menu'){navOpen=true;render();return}
  if(a==='menu-close'){navOpen=false;render();return}
  if(a==='clear'){flash='';render();return}
+ if(a==='generate-ref'){
+  const field=document.querySelector('#edit-form input[name="ref"]');
+  if(field)field.value=suggestPublicReference('MAT');return;
+ }
+ if(a==='import-toggle'){importOpen=!importOpen;importMessage='';render();return;}
+ if(a==='import-preview'){
+  if(!importTable){importMessage='Choisir un fichier CSV ou TSV';render();return;}
+  importOptions={
+   auto:document.getElementById('import-auto').checked,
+   prefix:document.getElementById('import-prefix').value.trim().toUpperCase(),
+   update:document.getElementById('import-duplicate').value==='update',
+   defaultCategory:document.getElementById('import-default-category').value
+  };
+  try{
+   importPlan=window.SupplierCsvDemo.preview(importTable,products,importOptions);
+   const errors=importPlan.filter(x=>x.action==='error').length;
+   importMessage=importPlan.length+' lignes vérifiées. '+errors+' erreur(s). Aucun produit importé avant confirmation.';
+  }catch(e){importPlan=[];importMessage=e instanceof Error?e.message:'Erreur d’import';}
+  render();return;
+ }
+ if(a==='import-confirm'){
+  let created=0,updated=0,ignored=0;
+  for(const row of importPlan){
+   if(row.action==='skip'||row.action==='error'){ignored++;continue;}
+   const previous=products.find(p=>p.ref.toUpperCase()===row.ref);
+   if(row.action==='update'){
+    if(!previous||previous.archived){ignored++;continue;}
+    Object.assign(previous,{name:row.name,brand:row.brand,category:row.category,price:row.price,unit:row.unit,updated:stamp()});
+    if(row.stock!==null){previous.qty=row.stock;previous.mode='quantity';previous.status=row.stock===0?'out_of_stock':row.stock<=5?'low_stock':'in_stock';}
+    updated++;
+   }else if(row.action==='create'&&!previous){
+    products.unshift({id:id(),ref:row.ref,name:row.name,brand:row.brand,category:row.category,unit:row.unit,price:row.price,
+     qty:row.stock,mode:row.stock===null?'status':'quantity',status:row.stock===null?'unknown':row.stock===0?'out_of_stock':row.stock<=5?'low_stock':'in_stock',
+     archived:false,updated:stamp(),photo:null,documents:[]});created++;
+   }else ignored++;
+  }
+  importPlan=[];importTable=null;importMessage=created+' produit(s) créés, '+updated+' mis à jour, '+ignored+' ignorés — démo en mémoire uniquement.';
+  flash=importMessage;render();return;
+ }
  if(a==='new-product'){popup={kind:'product'};render();return}
  if(a==='edit-product'){popup={kind:'product',id:idv};render();return}
  if(a==='new-client'){popup={kind:'client'};render();return}
@@ -264,6 +303,19 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
  const el=e.target,a=el.dataset.action,idv=el.dataset.id,p=productById(idv);
+ if(el.id==='import-file'){
+  const file=el.files?.[0];
+  if(!file)return;
+  if(file.size<=0||file.size>10*1024*1024||!/(\.csv|\.tsv|\.txt)$/i.test(file.name)){
+   importMessage='Formats de la démo : CSV ou TSV, 10 Mo maximum.';importPlan=[];render();return;
+  }
+  file.text().then(text=>{
+   importTable=window.SupplierCsvDemo.parse(text);
+   importPlan=[];importMessage=importTable.length-1+' ligne(s) chargées. Clique sur Vérifier le fichier.';
+   render();
+  }).catch(e=>{importTable=null;importPlan=[];importMessage=e.message;render();});
+  return;
+ }
  if(el.id==='agency-select'){demoAgency=el.value;render();return;}
  if(el.id==='trade-select'){
    const category=document.getElementById('category-select');
