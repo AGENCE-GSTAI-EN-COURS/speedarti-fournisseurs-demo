@@ -83,3 +83,18 @@
 .form-save-error{grid-column:1/-1;display:block;background:#fff3ef;color:#9b3028;border:1px solid #f1bcb1;padding:12px 14px;border-radius:9px;font-size:13px;line-height:1.5;font-weight:600}
 .form-save-error[hidden]{display:none}
 #edit-form [aria-invalid="true"]{border-color:#d64536;outline:2px solid #f3b1a8;outline-offset:1px}
+
+/* Product photos and technical documents: removable chips with explicit X. */
+.file-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.file-chip{display:inline-flex;gap:8px;max-width:100%;align-items:center;border:1px solid #c8dbf6;background:#f0f7ff;border-radius:999px;padding:5px 7px 5px 12px;font-size:12px;color:#224c7e}
+.file-chip a{color:#1769d1;text-decoration:none;overflow-wrap:anywhere;max-width:370px}
+.file-chip>span{overflow-wrap:anywhere;max-width:370px}
+.file-chip .chip-x,.media-photo-chip .chip-x{flex:0 0 auto;display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;border:1px solid #efc3ca;background:#fff;color:#a52541;font-size:19px;line-height:1;font-weight:700;padding:0}
+.file-chip .chip-x:hover,.media-photo-chip .chip-x:hover{background:#ffe9ee}
+.media-photo-chip{display:flex;align-items:flex-start;gap:8px;background:#fff;border:1px solid #dde9f8;border-radius:10px;padding:10px;width:max-content;max-width:100%}
+.file-chips.linked-docs{display:flex}
+.step input.stock-qty{width:66px;min-width:58px;max-width:66px;text-align:center;border:1px solid #c7dbf5;border-radius:7px;background:#fff;color:#163f71;font-size:13px;font-weight:700;padding:6px 4px}
+.step input.stock-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.step{gap:5px;white-space:nowrap}
+.step button{flex:0 0 auto}
+@media(max-width:600px){.file-chip{border-radius:12px}.file-chip a,.file-chip>span{max-width:230px}}
