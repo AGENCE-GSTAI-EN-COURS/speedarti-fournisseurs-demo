@@ -40,6 +40,7 @@ let discounts=[];
 let pendingLinks=[];
 let importOpen=false,importTable=null,importPlan=[],importMessage='';
 let importOptions={auto:true,prefix:'MAT',update:false,defaultCategory:''};
+let stockRefreshPlan={source:'manual_upload',cadence:'manual',saved:false},stockOnlyRows=[],stockOnlyNotice='';
 let demoAgency='DEPOT-01',branchStocks=new Map(),syncSnapshots={},syncHistory=[];
 let demoUnlocked=false;
 let selected=new Set(),page='Dashboard',search='',stockFilter='all',flash='',popup=null,navOpen=false,period=7,documentSearch='';
@@ -136,9 +137,51 @@ function agencyStock(p,branch){
  if(branch==='DEPOT-01'&&!branchStocks.has(p.id+'@'+branch))return {quantity:p.mode==='quantity'?p.qty:null,status:status(p),updatedAt:p.updated};
  return branchStocks.get(p.id+'@'+branch)||{quantity:null,status:'unknown',updatedAt:null};
 }
+function stockOnlyPreview(table){
+ const header=(table[0]||[]).map(x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim());
+ const refIndex=header.findIndex(x=>['reference','ref','reference fournisseur','sku','code produit','code article'].includes(x));
+ const qtyIndex=header.findIndex(x=>['stock','stock disponible','quantite','qte','quantity','qty'].includes(x));
+ if(refIndex<0||qtyIndex<0)throw Error('Colonnes Référence et Stock obligatoires pour cette mise à jour');
+ const known=new Map(active().map(p=>[p.ref.toUpperCase(),p])),seen=new Set();
+ return table.slice(1).map((arr,i)=>{
+  const reference=String(arr[refIndex]||'').trim().toUpperCase();
+  const raw=String(arr[qtyIndex]??'').trim();
+  const row={line:i+2,reference,quantity:null,action:'error',issue:''};
+  if(!reference)row.issue='Référence manquante';
+  else if(seen.has(reference))row.issue='Référence répétée dans le fichier';
+  else{
+   seen.add(reference);
+   if(!raw){row.action='skip';row.issue='Stock non indiqué : inchangé';}
+   else if(!/^\d+$/.test(raw)){row.issue='Quantité invalide';}
+   else if(!known.has(reference)){row.action='skip';row.issue='Produit inconnu ou archivé';}
+   else{row.action='update';row.quantity=Number(raw);}
+  }
+  return row;
+ });
+}
+function stockRefreshPanelHtml(){
+ const modes=[['manual','Manuellement'],['hourly','Toutes les heures'],['half_day','Toutes les 12 heures'],['daily','Tous les jours'],['weekly','Chaque semaine'],['monthly','Chaque mois']];
+ const sources=[['manual_upload','Fichier sur cet appareil (manuel uniquement)'],['hosted_xlsx','Fichier Excel hébergé (connexion future)'],['hosted_csv','Fichier CSV hébergé (connexion future)'],['erp_api','API logiciel fournisseur (connexion future)'],['sftp','Export SFTP (connexion future)']];
+ const valid=stockOnlyRows.filter(r=>r.action==='update').length;
+ return '<section class="panel stock-refresh-demo"><h2>Actualiser les stocks par fichier</h2>'+
+  '<p class="sub">Import Excel / CSV pour modifier uniquement les quantités de '+esc(demoAgency)+'. Les prix et désignations restent inchangés.</p>'+
+  '<div class="toolbar"><input id="stock-refresh-file" type="file" accept=".xlsx,.csv,.tsv,.txt" aria-label="Fichier Excel CSV de stocks">'+
+  '<button class="ghost" data-action="stock-refresh-preview" '+(stockOnlyRows.length?'':'disabled')+'>Contrôler le fichier</button></div>'+
+  (stockOnlyNotice?'<p class="import-message" role="status">'+esc(stockOnlyNotice)+'</p>':'')+
+  (stockOnlyRows.length?'<p class="import-summary">'+valid+' stock(s) à modifier — '+stockOnlyRows.filter(r=>r.action==='error').length+' erreurs — '+stockOnlyRows.filter(r=>r.action==='skip').length+' ignorés</p>'+
+   '<div class="tablewrap"><table><thead><tr><th>Référence</th><th>Quantité</th><th>Résultat</th></tr></thead><tbody>'+
+   stockOnlyRows.slice(0,10).map(r=>'<tr><td>'+esc(r.reference)+'</td><td>'+(r.quantity===null?'—':r.quantity)+'</td><td>'+esc(r.issue||r.action)+'</td></tr>').join('')+'</tbody></table></div>'+
+   '<button class="primary" data-action="stock-refresh-apply" '+(valid?'':'disabled')+'>Mettre à jour '+valid+' stock(s) maintenant</button>':'')+
+  '<h2 class="stock-plan-heading">Programmer les mises à jour</h2><p class="sub">Un fichier sur le PC ne se met pas à jour tout seul. Une programmation réelle exige un export ou fichier distant sécurisé, connecté par Anne-Sophie.</p>'+
+  '<div class="import-controls"><label>Source<select id="stock-refresh-source">'+sources.map(([value,label])=>'<option value="'+value+'" '+(value===stockRefreshPlan.source?'selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
+  '<label>Fréquence<select id="stock-refresh-cadence">'+modes.map(([value,label])=>'<option value="'+value+'" '+(value===stockRefreshPlan.cadence?'selected':'')+' '+(stockRefreshPlan.source==='manual_upload'&&value!=='manual'?'disabled':'')+'>'+label+'</option>').join('')+'</select></label></div>'+
+  '<button class="ghost" data-action="stock-refresh-save">Préparer cette programmation</button>'+
+  (stockRefreshPlan.saved?'<p class="import-message">Configuration enregistrée uniquement en démo. <strong>Aucune exécution automatique active.</strong></p>':'')+'</section>';
+}
 function agencyScreen(){
  return '<div class="title"><div><h1>Stocks par agence</h1><p>Stocks distincts par dépôt et mises à jour fictives.</p></div><span class="status unknown">NON BRANCHÉ</span></div>'+
  '<div class="panel"><h2>Agence</h2><div class="toolbar"><select id="agency-select"><option value="DEPOT-01" '+(demoAgency==='DEPOT-01'?'selected':'')+'>Dépôt principal</option><option value="DAX" '+(demoAgency==='DAX'?'selected':'')+'>Agence Dax</option><option value="MONTAUBAN" '+(demoAgency==='MONTAUBAN'?'selected':'')+'>Agence Montauban</option></select></div><p class="sub">Un dépôt sans stock transmis indique « Non communiqué », pas « Rupture ».</p></div>'+
+ stockRefreshPanelHtml()+
  '<div class="panel tablewrap"><table><thead><tr><th>Produit</th><th>Dépôt</th><th>Quantité</th><th>Disponibilité</th><th>Modification</th></tr></thead><tbody>'+
  active().map(p=>{const v=agencyStock(p,demoAgency);return '<tr><td>'+esc(p.ref)+'<small class="sub">'+esc(p.name)+'</small></td><td>'+esc(demoAgency)+'</td><td>'+(v.quantity===null?'Non communiquée':v.quantity)+'</td><td><span class="status '+esc(v.status)+'">'+esc(names[v.status])+'</span></td><td><button data-action="agency-adjust" data-id="'+esc(p.id)+'" data-change="-1" '+(v.quantity===null||v.quantity<=0?'disabled':'')+'>−1</button> <button data-action="agency-adjust" data-id="'+esc(p.id)+'" data-change="1">+1</button></td></tr>';}).join('')+'</tbody></table></div>';
 }
