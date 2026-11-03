@@ -24,9 +24,10 @@ let products=rows.map((x,i)=>({id:'p'+i,ref:x[0],name:x[1],category:x[2],price:x
 let companies=[{id:'c0',name:'Entreprise fictive ABC',code:'ABC-DEMO',email:'client@example.invalid',siret:'',phone:'',address:'',zip:'',city:''}];
 let discounts=[];
 let pendingLinks=[];
+let demoAgency='DEPOT-01',branchStocks=new Map(),syncSnapshots={},syncHistory=[];
 let demoUnlocked=false;
 let selected=new Set(),page='Dashboard',search='',stockFilter='all',flash='',popup=null,navOpen=false,period=7,documentSearch='';
-const pages=[['▦','Dashboard'],['▣','Produits'],['♙','Clients professionnels'],['⇄','Connexions SpeedArti'],['%','Remises'],['▥','Statistiques'],['▤','Documents'],['▱','Archives'],['⚙','Paramètres']];
+const pages=[['▦','Dashboard'],['▣','Produits'],['♙','Clients professionnels'],['⇄','Connexions SpeedArti'],['↻','Synchronisations'],['▤','Stocks par agence'],['%','Remises'],['▥','Statistiques'],['▤','Documents'],['▱','Archives'],['⚙','Paramètres']];
 const names={in_stock:'En stock',low_stock:'Stock faible',out_of_stock:'Rupture',unknown:'Non communiqué'};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const euro=n=>(n/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
@@ -86,7 +87,22 @@ function documents(){
  filtered.map(({product:p,doc:d})=>'<tr><td><a href="'+esc(d.url)+'" target="_blank" rel="noopener" download="'+esc(d.name)+'">📄 '+esc(d.name)+'</a></td><td><b>'+esc(p.name)+'</b><small>'+esc(p.ref)+(p.archived?' · Archivé':'')+'</small></td><td>Fiche technique</td><td><button class="ghost" data-action="edit-product" data-id="'+p.id+'" '+(p.archived?'disabled':'')+'>Fiche produit</button></td></tr>').join('')+(!filtered.length?'<tr><td colspan="4">Aucun document. Ouvrez une fiche produit pour joindre des PDF.</td></tr>':'')+'</tbody></table></div><p class="note">Documents fictifs conservés uniquement pendant la session. Stockage serveur : NON BRANCHÉ.</p></div>';
 }
 function settings(){return '<div class="title"><div><h1>Paramètres fournisseur</h1><p>Identité professionnelle et dépôt principal.</p></div></div><div class="panel fields"><label>Raison sociale<input disabled value="'+esc(supplier.name)+'"></label><label>SIRET<input disabled value="'+esc(supplier.siret)+'"></label><label>E-mail<input disabled value="'+esc(supplier.email)+'"></label><label>Dépot<input disabled value="DEPOT-01"></label><p class="note">Authentification fournisseur et modifications des paramètres : NON BRANCHÉES.</p></div>';}
-const views={'Dashboard':dashboard,'Produits':productTable,'Clients professionnels':clients,'Connexions SpeedArti':connections,'Remises':rebates,'Statistiques':stats,'Documents':documents,'Archives':archive,'Paramètres':settings};
+function agencyStock(p,branch){
+ if(branch==='DEPOT-01'&&!branchStocks.has(p.id+'@'+branch))return {quantity:p.mode==='quantity'?p.qty:null,status:status(p),updatedAt:p.updated};
+ return branchStocks.get(p.id+'@'+branch)||{quantity:null,status:'unknown',updatedAt:null};
+}
+function agencyScreen(){
+ return '<div class="title"><div><h1>Stocks par agence</h1><p>Stocks distincts par dépôt et mises à jour fictives.</p></div><span class="status unknown">NON BRANCHÉ</span></div>'+
+ '<div class="panel"><h2>Agence</h2><div class="toolbar"><select id="agency-select"><option value="DEPOT-01" '+(demoAgency==='DEPOT-01'?'selected':'')+'>Dépôt principal</option><option value="DAX" '+(demoAgency==='DAX'?'selected':'')+'>Agence Dax</option><option value="MONTAUBAN" '+(demoAgency==='MONTAUBAN'?'selected':'')+'>Agence Montauban</option></select></div><p class="sub">Un dépôt sans stock transmis indique « Non communiqué », pas « Rupture ».</p></div>'+
+ '<div class="panel tablewrap"><table><thead><tr><th>Produit</th><th>Dépôt</th><th>Quantité</th><th>Disponibilité</th><th>Modification</th></tr></thead><tbody>'+
+ active().map(p=>{const v=agencyStock(p,demoAgency);return '<tr><td>'+esc(p.ref)+'<small class="sub">'+esc(p.name)+'</small></td><td>'+esc(demoAgency)+'</td><td>'+(v.quantity===null?'Non communiquée':v.quantity)+'</td><td><span class="status '+esc(v.status)+'">'+esc(names[v.status])+'</span></td><td><button data-action="agency-adjust" data-id="'+esc(p.id)+'" data-change="-1" '+(v.quantity===null||v.quantity<=0?'disabled':'')+'>−1</button> <button data-action="agency-adjust" data-id="'+esc(p.id)+'" data-change="1">+1</button></td></tr>';}).join('')+'</tbody></table></div>';
+}
+function syncScreen(){
+ return '<div class="title"><div><h1>Synchronisations fournisseurs</h1><p>Simulation de l’envoi des changements vers le connecteur SpeedArti existant.</p></div><span class="status unknown">SIMULATION — NON BRANCHÉ</span></div>'+
+ '<div class="panel"><h2>Préparer un transfert fictif</h2><p class="sub">Aucun compte authentifié, aucune connexion ni API activée.</p><div class="toolbar"><button class="primary" data-action="sync-preview">Simuler la synchronisation</button><button data-action="sync-reset">Réinitialiser la simulation</button></div></div>'+
+ '<div class="panel"><h2>Historique local</h2>'+syncHistory.map(x=>'<div class="line"><div><b>'+esc(x.at)+'</b><small class="sub">'+esc(x.mode)+'</small></div><span>'+x.changed+' modification(s), '+x.batches+' lot(s)</span></div>').join('')+(syncHistory.length?'':'<p class="sub">Aucune synchronisation simulée.</p>')+'</div>';
+}
+const views={'Dashboard':dashboard,'Produits':productTable,'Clients professionnels':clients,'Connexions SpeedArti':connections,'Synchronisations':syncScreen,'Stocks par agence':agencyScreen,'Remises':rebates,'Statistiques':stats,'Documents':documents,'Archives':archive,'Paramètres':settings};
 function formField(label,name,value='',required=false){return '<label>'+esc(label)+'<input name="'+esc(name)+'" value="'+esc(value)+'" '+(required?'required':'')+'></label>';}
 function modalHTML(){
  if(!popup)return '';
@@ -129,6 +145,24 @@ document.addEventListener('click',function(e){
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.page){page=b.dataset.page;navOpen=false;render();return;}
  const a=b.dataset.action,idv=b.dataset.id,p=productById(idv);
+ if(a==='agency-adjust'){
+  const item=productById(idv),old=agencyStock(item,demoAgency),delta=Number(b.dataset.change);
+  const next=Math.max(0,(old.quantity??0)+delta);
+  branchStocks.set(item.id+'@'+demoAgency,{quantity:next,status:next===0?'out_of_stock':next<=5?'low_stock':'in_stock',updatedAt:stamp()});
+  saveMessage('Stock fictif modifié pour '+demoAgency+'. Aucun envoi réel.');return;
+ }
+ if(a==='sync-preview'){
+  let changed=0;const fresh={...syncSnapshots};
+  for(const item of active()){
+   const stock=agencyStock(item,'DEPOT-01');
+   const fingerprint=JSON.stringify([item.ref,item.name,item.price,stock.quantity,stock.status,stock.updatedAt]);
+   if(syncSnapshots[item.id]!==fingerprint){changed++;fresh[item.id]=fingerprint;}
+  }
+  const mode=Object.keys(syncSnapshots).length?'Différentiel':'Initial';
+  syncSnapshots=fresh;syncHistory.unshift({at:new Date().toLocaleString('fr-FR'),mode,changed,batches:Math.ceil(changed/200)});
+  saveMessage('Simulation uniquement : '+changed+' produit(s) modifié(s). Aucun envoi à SpeedArti.');return;
+ }
+ if(a==='sync-reset'){syncSnapshots={};syncHistory=[];saveMessage('Simulation réinitialisée.');return;}
  if(a==='new-link'){
    const select=document.getElementById('link-company'),company=companies.find(c=>c.id===select.value);
    if(!company){saveMessage('Choisir une entreprise cliente');return}
@@ -179,6 +213,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
  const el=e.target,a=el.dataset.action,idv=el.dataset.id,p=productById(idv);
+ if(el.id==='agency-select'){demoAgency=el.value;render();return;}
  if(el.id==='stock-filter'){stockFilter=el.value;render();return}
  if(el.id==='brand-select'){
   const input=document.getElementById('brand-new');
