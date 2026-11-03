@@ -132,3 +132,26 @@ test('PWA can be installed with a scoped manifest and both icon sizes',async({pa
  expect((await request.get('/sw.js')).ok()).toBeTruthy();
  expect((await request.get('/offline.html')).ok()).toBeTruthy();
 });
+
+test('stocks par agence : changement local sans altérer le stock du dépôt principal',async({page})=>{
+ await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Stocks par agence"]').click();
+ await expect(page.getByRole('heading',{name:'Stocks par agence'})).toBeVisible();
+ await page.locator('#agency-select').selectOption('DAX');
+ const row=page.locator('tbody tr').first();
+ await expect(row).toContainText('Non communiquée');
+ await row.locator('[data-action="agency-adjust"][data-change="1"]').click();
+ await expect(page.locator('tbody tr').first()).toContainText('1');
+ await page.locator('#agency-select').selectOption('DEPOT-01');
+ await expect(page.locator('tbody tr').first()).toContainText('32');
+});
+test('simule un premier transfert complet puis des deltas sans envoyer de données',async({page})=>{
+ await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Synchronisations"]').click();
+ await expect(page.getByText('SIMULATION — NON BRANCHÉ')).toBeVisible();
+ await page.locator('[data-action="sync-preview"]').click();
+ await expect(page.getByText('6 modification(s), 1 lot(s)')).toBeVisible();
+ await page.locator('[data-action="sync-preview"]').click();
+ await expect(page.getByText('0 modification(s), 0 lot(s)')).toBeVisible();
+ await expect(page.getByText(/Aucun envoi à SpeedArti/)).toBeVisible();
+});
