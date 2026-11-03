@@ -219,7 +219,7 @@ function modalHTML(){
    '</div>';
  }else if(kind==='client'){
    const c=item||{name:'',code:'',email:'',siret:'',phone:'',address:'',zip:'',city:''};
-   fields=formField('Raison sociale *','name',c.name,true)+formField('E-mail professionnel *','email',c.email,true)+formField('SIRET','siret',c.siret)+formField('Téléphone','phone',c.phone)+formField('Adresse','address',c.address)+formField('Code postal','zip',c.zip)+formField('Ville','city',c.city)+formField('Code client *','code',c.code,true);
+   fields=formField('Raison sociale *','name',c.name,true)+formField('E-mail professionnel *','email',c.email,true)+formField('SIRET','siret',c.siret)+formField('Téléphone','phone',c.phone)+formField('Adresse','address',c.address)+formField('Code postal','zip',c.zip)+formField('Ville','city',c.city)+formField('Code client (facultatif : généré automatiquement)','code',c.code);
  }else{
    fields=formField('Nom de la remise *','name','',true)+'<label>Périmètre<select name="scope"><option value="all">Tous les produits</option><option value="category">Par catégorie</option><option value="selected" '+(popup.selected?'selected':'')+'>Sélection actuelle ('+selected.size+')</option></select></label>'+
    formField('Catégorie (si applicable)','category')+'<label>Code client<select name="customer"><option value="">Tous les clients</option>'+companies.map(c=>'<option value="'+esc(c.code)+'">'+esc(c.name)+'</option>').join('')+'</select></label>'+
@@ -481,12 +481,21 @@ document.addEventListener('submit',function(e){
    }
    pdfs.forEach(file=>target.documents.push({id:id(),productId:target.id,name:file.name,mimeType:file.type,sizeBytes:file.size,kind:'Fiche technique',url:URL.createObjectURL(file)}));
  }else if(k==='client'){
-   const code=String(data.code).toUpperCase().trim(),email=String(data.email).trim(),siret=String(data.siret).replace(/\s/g,'');
-   if(!code||companies.some(c=>c.code===code&&c.id!==popup.id)){saveMessage('Code client déjà utilisé ou invalide');return}
-   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){saveMessage('E-mail invalide');return}
-   if(siret&&!/^\d{14}$/.test(siret)){saveMessage('SIRET : 14 chiffres');return}
-   const company={id:popup.id||id(),name:data.name,email,code,siret,phone:data.phone,address:data.address,zip:data.zip,city:data.city};
-   if(popup.id)Object.assign(companies.find(c=>c.id===popup.id),company);else companies.push(company);
+   const companyName=String(data.name||'').trim();
+   const email=String(data.email||'').trim(),siret=String(data.siret||'').replace(/\s/g,'');
+   let code=String(data.code||'').toUpperCase().trim();
+   if(!companyName){showFormValidationError(e.target,'La raison sociale est obligatoire.','name');return}
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showFormValidationError(e.target,'E-mail professionnel invalide.','email');return}
+   if(siret&&!/^\d{14}$/.test(siret)){showFormValidationError(e.target,'SIRET : 14 chiffres, ou laissez le champ vide.','siret');return}
+   if(!code){
+     const prefix=companyName.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,10)||'CLIENT';
+     code=prefix;let number=2;
+     while(companies.some(c=>c.code===code&&c.id!==popup.id))code=prefix+'-'+number++;
+   }
+   if(companies.some(c=>c.code===code&&c.id!==popup.id)){showFormValidationError(e.target,'Ce code client est déjà utilisé.','code');return}
+   const company={id:popup.id||id(),name:companyName,email,code,siret,phone:String(data.phone||''),address:String(data.address||''),zip:String(data.zip||''),city:String(data.city||'')};
+   if(popup.id){const prior=companies.find(c=>c.id===popup.id);if(!prior){showFormValidationError(e.target,'Fiche client introuvable.');return}Object.assign(prior,company);}
+   else companies.unshift(company);
  }else {
    const value=data.mode==='percent'?Number(data.value):money(data.value);
    if(!Number.isFinite(value)||value<0||(data.mode==='percent'&&value>100)){saveMessage('Valeur de remise invalide');return}
@@ -498,6 +507,9 @@ document.addEventListener('submit',function(e){
   // Avoid hiding a successful addition behind a previously active search or stock filter.
   page='Produits';search='';stockFilter='all';
   flash=(popup.id?'Produit modifié.':'Produit ajouté au catalogue et affiché ci-dessous.')+' Démonstration uniquement, sans sauvegarde serveur.';
+ }else if(k==='client'){
+  page='Clients professionnels';
+  flash='Client professionnel enregistré et affiché ci-dessous. Démonstration uniquement.';
  }else flash='Enregistré dans la démo en mémoire uniquement';
  popup=null;render();
 });
