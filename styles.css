@@ -68,3 +68,13 @@
 .import-header-actions>button{position:static!important;display:inline-flex;align-items:center;justify-content:center;white-space:normal;line-height:1.25;min-height:42px;max-width:100%;flex:0 1 auto}
 @media(max-width:1000px){.content .title{align-items:stretch}.import-header-actions{flex:1 1 100%;justify-content:flex-start}}
 @media(max-width:500px){.import-header-actions{display:grid;grid-template-columns:1fr;gap:9px}.import-header-actions>button{width:100%}}
+
+/* Stock schedule preparation: no automated import is activated by this demo. */
+.stock-refresh-demo{border:1px solid #cadcf4}
+.stock-refresh-demo h2{font-size:17px;color:#1b4876;margin:14px 0}
+.stock-refresh-demo .stock-plan-heading{padding-top:12px;border-top:1px solid #e5edf9;margin-top:22px}
+.stock-refresh-demo .toolbar input[type=file]{min-width:240px;flex:1;border:1px solid #dce6f3;padding:10px;border-radius:8px}
+.stock-refresh-demo .import-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+.stock-refresh-demo table{min-width:550px}
+.stock-refresh-demo button{margin-top:8px}
+@media(max-width:760px){.stock-refresh-demo .import-controls{grid-template-columns:1fr}.stock-refresh-demo .toolbar input[type=file]{min-width:0;width:100%}}
