@@ -16,7 +16,7 @@ test('produit, stock, archive et restauration', async ({page})=>{
   let row=page.locator('tr').filter({hasText:'E2E-TEST-001'});
   await row.locator('[data-action="plus"]').click();
   row=page.locator('tr').filter({hasText:'E2E-TEST-001'});
-  await expect(row.locator('.step b')).toHaveText('1');
+  await expect(row.locator('input[data-action="quantity"]')).toHaveValue('1');
   await row.locator('[data-action="mode"]').click();
   row=page.locator('tr').filter({hasText:'E2E-TEST-001'});
   await expect(row.getByText('Par statut')).toBeVisible();
@@ -371,13 +371,13 @@ test('création de client sans code, code automatiquement attribué et erreur co
  await expect(form.locator('input[name="code"]')).toHaveValue('');
  await form.locator('button[type="submit"]').click();
  await expect(page.locator('tr').filter({hasText:'Fournisseur Essai Pro'})).toBeVisible();
- await expect(page.locator('tr').filter({hasText:'Fournisseur Essai Pro'})).toContainText('FOURNISSE');
+ await expect(page.locator('tr').filter({hasText:'Fournisseur Essai Pro'})).toContainText('FOURNISSEU');
  await expect(page.locator('.alert')).toContainText('Client professionnel enregistré');
  await page.locator('[data-action="new-client"]').click();
  const form2=page.locator('#edit-form');
  await form2.locator('input[name="name"]').fill('Deuxième société test');
  await form2.locator('input[name="email"]').fill('autre@example.invalid');
- await form2.locator('input[name="code"]').fill('FOURNISSE');
+ await form2.locator('input[name="code"]').fill('FOURNISSEU');
  await form2.locator('button[type="submit"]').click();
  await expect(form2.locator('#form-save-error')).toContainText('code client est déjà utilisé');
  await expect(form2.locator('input[name="name"]')).toHaveValue('Deuxième société test');
@@ -395,7 +395,7 @@ test('simulation statistiques explicite et chiffres variables selon période',as
  await expect(page.locator('.stats-chart-col')).toHaveCount(7);
  await page.locator('[data-action="period"][data-days="30"]').click();
  await expect(page.locator('.stats-chart-col')).toHaveCount(4);
- await expect(page.locator('.stats-kpi').first()).toContainText('2 140');
+ await expect(page.locator('.stats-kpi').first()).toContainText(/2[\s\u202f\u00a0]140/);
 });
 test('import de cent lignes fictives : références et quantités',async({page})=>{
  await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
