@@ -189,3 +189,35 @@ test('création et modification avec métier étendu, catégorie personnelle et 
  await expect(page.locator('#category-select')).toHaveValue('__custom__');
  await expect(page.locator('#custom-category')).toHaveValue('Coffrets spéciaux');
 });
+
+test('référence automatique facultative sur nouvelle fiche',async({page})=>{
+ await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Produits"]').click();
+ await page.locator('[data-action="new-product"]').click();
+ await expect(page.locator('#edit-form input[name="ref"]')).toHaveValue('');
+ await page.locator('[data-action="generate-ref"]').click();
+ await expect(page.locator('#edit-form input[name="ref"]')).toHaveValue('MAT-000001');
+ await page.locator('#edit-form input[name="ref"]').fill('MA-REFERENCE-MANUELLE');
+ await expect(page.locator('#edit-form input[name="ref"]')).toHaveValue('MA-REFERENCE-MANUELLE');
+});
+
+test('import CSV : apercu, references generees, confirmation explicite, aucune synchronisation',async({page})=>{
+ await page.goto('/');
+ await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Produits"]').click();
+ await page.locator('[data-action="import-toggle"]').click();
+ await expect(page.getByText('Importer des produits en masse')).toBeVisible();
+ const file='Référence;Désignation;Prix HT;Marque;Catégorie;Stock\n'+
+  ';Chevron pour test;12,50;Marque X;Charpente;5\n'+
+  'REF-EXCEL-CSV;Tuile pour test;2,75;Marque Y;Couverture;13\n';
+ await page.locator('#import-file').setInputFiles({name:'catalogue.csv',mimeType:'text/csv',buffer:Buffer.from(file,'utf8')});
+ await expect(page.getByText(/2 ligne\(s\) chargées/)).toBeVisible();
+ await page.locator('[data-action="import-preview"]').click();
+ await expect(page.locator('.import-summary')).toContainText('À créer : 2');
+ await expect(page.getByText('MAT-000001')).toBeVisible();
+ await page.locator('[data-action="import-confirm"]').click();
+ await expect(page.locator('tr').filter({hasText:'MAT-000001'})).toBeVisible();
+ await expect(page.locator('tr').filter({hasText:'REF-EXCEL-CSV'})).toBeVisible();
+ await expect(page.getByText(/démo en mémoire uniquement/).first()).toBeVisible();
+});
