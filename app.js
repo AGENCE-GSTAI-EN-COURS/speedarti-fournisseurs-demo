@@ -239,6 +239,32 @@ document.addEventListener('click',function(e){
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.page){page=b.dataset.page;navOpen=false;render();return;}
  const a=b.dataset.action,idv=b.dataset.id,p=productById(idv);
+ if(a==='stock-refresh-preview'){
+  if(!stockOnlyRows.length){stockOnlyNotice='Sélectionnez un fichier de stocks';render();return;}
+  stockOnlyNotice=stockOnlyRows.filter(r=>r.action==='update').length+' stocks reconnus ; aucun changement avant confirmation.';
+  render();return;
+ }
+ if(a==='stock-refresh-apply'){
+  let done=0;
+  for(const row of stockOnlyRows.filter(r=>r.action==='update')){
+   const p=products.find(p=>p.ref.toUpperCase()===row.reference&&!p.archived);
+   if(!p)continue;
+   const q=row.quantity,state=q===0?'out_of_stock':q<=5?'low_stock':'in_stock';
+   if(demoAgency==='DEPOT-01'){p.qty=q;p.mode='quantity';p.status=state;p.updated=stamp();}
+   branchStocks.set(p.id+'@'+demoAgency,{quantity:q,status:state,updatedAt:stamp()});
+   done++;
+  }
+  stockOnlyRows=[];stockOnlyNotice=done+' stock(s) actualisés en mémoire uniquement, aucun envoi vers SpeedArti.';
+  render();return;
+ }
+ if(a==='stock-refresh-save'){
+  const source=document.getElementById('stock-refresh-source').value;
+  const cadence=document.getElementById('stock-refresh-cadence').value;
+  if(source==='manual_upload'&&cadence!=='manual'){stockOnlyNotice='Un fichier local ne permet pas de programmer une mise à jour sans nouveau téléchargement.';render();return;}
+  stockRefreshPlan={source,cadence,saved:true};
+  stockOnlyNotice='Préparation enregistrée dans la démo : la synchronisation automatique est inactive.';
+  render();return;
+ }
  if(a==='agency-adjust'){
   const item=productById(idv),old=agencyStock(item,demoAgency),delta=Number(b.dataset.change);
   const next=Math.max(0,(old.quantity??0)+delta);
@@ -346,6 +372,30 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
  const el=e.target,a=el.dataset.action,idv=el.dataset.id,p=productById(idv);
+ if(el.id==='stock-refresh-source'){
+  stockRefreshPlan.source=el.value;
+  if(el.value==='manual_upload')stockRefreshPlan.cadence='manual';
+  stockRefreshPlan.saved=false;render();return;
+ }
+ if(el.id==='stock-refresh-cadence'){
+  stockRefreshPlan.cadence=el.value;stockRefreshPlan.saved=false;return;
+ }
+ if(el.id==='stock-refresh-file'){
+  const file=el.files?.[0];if(!file)return;
+  if(file.size<=0||file.size>10*1024*1024||!/(\.xlsx|\.csv|\.tsv|\.txt)$/i.test(file.name)){
+   stockOnlyNotice='Formats de stocks acceptés : XLSX, CSV ou TSV, 10 Mo maximum.';stockOnlyRows=[];render();return;
+  }
+  const reading=/\.xlsx$/i.test(file.name)?
+   (typeof window.readXlsxFile==='function'?window.readXlsxFile(file):Promise.reject(Error('Lecteur Excel indisponible, vérifier votre connexion et actualiser.'))):
+   file.text().then(text=>window.SupplierCsvDemo.parse(text));
+  Promise.resolve(reading).then(data=>{
+   const table=data.map(row=>row.map(value=>value===null||value===undefined?'':String(value)));
+   stockOnlyRows=stockOnlyPreview(table);
+   stockOnlyNotice=file.name+' : '+stockOnlyRows.length+' lignes lues. Vérifiez avant la mise à jour.';
+   render();
+  }).catch(e=>{stockOnlyRows=[];stockOnlyNotice=e.message||'Lecture impossible';render();});
+  return;
+ }
  if(el.id==='import-file'){
   const file=el.files?.[0];
   if(!file)return;
