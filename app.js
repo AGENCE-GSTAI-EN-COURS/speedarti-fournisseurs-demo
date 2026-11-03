@@ -101,7 +101,7 @@ function productTable(){
  (importOpen?importPanelHtml():'')+
  '<div class="panel"><div class="toolbar"><input id="search" value="'+esc(search)+'" placeholder="Rechercher un produit…"><button class="ghost" data-action="search">Rechercher</button><select id="stock-filter"><option value="all">Tous les stocks</option>'+Object.keys(names).map(k=>'<option value="'+k+'" '+(stockFilter===k?'selected':'')+'>'+names[k]+'</option>').join('')+'</select><button data-action="bulk-discount" '+(selected.size?'':'disabled')+'>% Remise ('+selected.size+')</button><button data-action="bulk-archive" '+(selected.size?'':'disabled')+'>Archiver</button></div>'+
  '<div class="tablewrap"><table><thead><tr><th>Choix</th><th>Produit / référence</th><th>Prix HT</th><th>Stock</th><th>Disponibilité</th><th>Actions</th></tr></thead><tbody>'+
- matches.map(p=>'<tr><td><input type="checkbox" data-action="select" data-id="'+p.id+'" '+(selected.has(p.id)?'checked':'')+' aria-label="Sélectionner '+esc(p.ref)+'"></td><td><div class="product-ident">'+(p.photo?'<img class="product-thumb" src="'+esc(p.photo.url)+'" alt="Photo produit">':'<span class="product-thumb product-empty">▣</span>')+'<div><b>'+esc(p.name)+'</b><small>'+esc(p.ref)+' · '+esc(p.category)+' · '+esc(p.brand)+'</small>'+(p.documents.length?'<small>📎 '+p.documents.length+' PDF</small>':'')+'</div></div></td><td><input class="price" data-action="price" data-id="'+p.id+'" value="'+(p.price/100).toFixed(2).replace('.',',')+'" aria-label="Prix '+esc(p.ref)+'"> €</td><td>'+(p.mode==='quantity'?'<div class="step"><button data-action="minus" data-id="'+p.id+'">−</button><b>'+p.qty+'</b><button data-action="plus" data-id="'+p.id+'">＋</button></div>':'<span class="sub">Par statut</span>')+'</td><td><select data-action="status" data-id="'+p.id+'" class="status '+status(p)+'">'+Object.keys(names).map(s=>'<option value="'+s+'" '+(status(p)===s?'selected':'')+'>'+names[s]+'</option>').join('')+'</select></td><td><div class="actions-row"><button class="ghost" data-action="edit-product" data-id="'+p.id+'">Modifier</button><button class="ghost" data-action="mode" data-id="'+p.id+'">Mode '+(p.mode==='quantity'?'statut':'quantité')+'</button><button class="ghost" data-action="archive" data-id="'+p.id+'">Archiver</button></div></td></tr>').join('')+
+ matches.map(p=>'<tr><td><input type="checkbox" data-action="select" data-id="'+p.id+'" '+(selected.has(p.id)?'checked':'')+' aria-label="Sélectionner '+esc(p.ref)+'"></td><td><div class="product-ident">'+(p.photo?'<img class="product-thumb" src="'+esc(p.photo.url)+'" alt="Photo produit">':'<span class="product-thumb product-empty">▣</span>')+'<div><b>'+esc(p.name)+'</b><small>'+esc(p.ref)+' · '+esc(p.category)+' · '+esc(p.brand)+'</small>'+(p.documents.length?'<small>📎 '+p.documents.length+' PDF</small>':'')+'</div></div></td><td><input class="price" data-action="price" data-id="'+p.id+'" value="'+(p.price/100).toFixed(2).replace('.',',')+'" aria-label="Prix '+esc(p.ref)+'"> €</td><td>'+(p.mode==='quantity'?'<div class="step"><button data-action="minus" data-id="'+p.id+'" aria-label="Diminuer stock '+esc(p.ref)+'">−</button><input class="stock-qty" type="number" min="0" step="1" inputmode="numeric" data-action="quantity" data-id="'+p.id+'" aria-label="Quantité '+esc(p.ref)+'" value="'+p.qty+'"><button data-action="plus" data-id="'+p.id+'" aria-label="Augmenter stock '+esc(p.ref)+'">＋</button></div>':'<span class="sub">Par statut</span>')+'</td><td><select data-action="status" data-id="'+p.id+'" class="status '+status(p)+'">'+Object.keys(names).map(s=>'<option value="'+s+'" '+(status(p)===s?'selected':'')+'>'+names[s]+'</option>').join('')+'</select></td><td><div class="actions-row"><button class="ghost" data-action="edit-product" data-id="'+p.id+'">Modifier</button><button class="ghost" data-action="mode" data-id="'+p.id+'">Mode '+(p.mode==='quantity'?'statut':'quantité')+'</button><button class="ghost" data-action="archive" data-id="'+p.id+'">Archiver</button></div></td></tr>').join('')+
  (!matches.length?'<tr><td colspan="6">Aucun produit correspondant.</td></tr>':'')+'</tbody></table></div><p class="note">Données fictives en mémoire, effacées au rechargement. La disponibilité fournisseur n’est jamais ajoutée au stock artisan.</p></div>';
 }
 function clients(){
@@ -212,10 +212,11 @@ function modalHTML(){
    formField('Prix HT (€) *','price',(p.price/100).toFixed(2),true)+
    '<label>Unité SpeedArti *<select name="unit" required><option value="">Choisir une unité</option>'+SPEEDARTI_UNITS.map(v=>'<option value="'+v+'" '+(p.unit===v?'selected':'')+'>'+v+'</option>').join('')+'</select></label>'+
    (item?'':formField('Stock initial','qty','0'))+
-   '<div class="media-zone"><h3>Photo du produit</h3>'+(p.photo?'<img class="media-preview" src="'+esc(p.photo.url)+'" alt="Photo du produit">':'<p class="sub">Aucune photo pour le moment</p>')+
-   '<input type="file" name="photo" id="photo-file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG ou WebP — 5 Mo max.</small></div>'+
+   '<div class="media-zone"><h3>Photo du produit</h3>'+(p.photo?'<div class="media-photo-chip" id="existing-photo-chip"><img class="media-preview" src="'+esc(p.photo.url)+'" alt="Photo du produit"><button type="button" class="chip-x" data-action="remove-photo" aria-label="Supprimer la photo" title="Supprimer la photo">×</button></div>':'<p class="sub" id="photo-empty">Aucune photo pour le moment</p>')+
+   '<input type="file" name="photo" id="photo-file" accept="image/jpeg,image/png,image/webp"><div id="new-photo-chips" class="file-chips"></div><small>JPEG, PNG ou WebP — 5 Mo max.</small></div>'+
    '<div class="media-zone"><h3>Documents associés</h3><input type="file" name="pdfs" id="docs-file" multiple accept="application/pdf"><small>Plusieurs PDF possibles — 10 Mo max. chacun.</small>'+
-   (p.documents.length?'<div class="linked-docs">'+p.documents.map(d=>'<div class="linked-doc"><a href="'+esc(d.url)+'" target="_blank" rel="noopener" download="'+esc(d.name)+'">📄 '+esc(d.name)+'</a><button type="button" data-action="remove-document" data-doc-id="'+d.id+'">Retirer</button></div>').join('')+'</div>':'<p class="sub">Les fichiers seront également visibles dans Documents.</p>')+
+   '<div id="selected-doc-chips" class="file-chips"></div>'+
+   (p.documents.length?'<div class="file-chips linked-docs">'+p.documents.map(d=>'<span class="file-chip"><a href="'+esc(d.url)+'" target="_blank" rel="noopener" download="'+esc(d.name)+'">📄 '+esc(d.name)+'</a><button type="button" class="chip-x" data-action="remove-document" data-doc-id="'+esc(d.id)+'" aria-label="Supprimer le document '+esc(d.name)+'" title="Supprimer ce PDF">×</button></span>').join('')+'</div>':'<p class="sub">Les fichiers seront également visibles dans Documents.</p>')+
    '</div>';
  }else if(kind==='client'){
    const c=item||{name:'',code:'',email:'',siret:'',phone:'',address:'',zip:'',city:''};
@@ -349,11 +350,25 @@ document.addEventListener('click',function(e){
  }
  if(a==='search'){search=document.getElementById('search').value;render();return}
  if(a==='document-search'){documentSearch=document.getElementById('document-search').value;render();return}
+ if(a==='remove-photo'){
+   if(!popup||popup.kind!=='product')return;
+   const input=document.getElementById('photo-file');
+   if(input?.files?.length){input.value='';document.getElementById('new-photo-chips')?.replaceChildren();return;}
+   popup.removedPhoto=true;b.closest('.media-photo-chip')?.remove();
+   const empty=document.getElementById('photo-empty');if(empty)empty.hidden=false;
+   return;
+ }
  if(a==='remove-document'){
    if(!popup||popup.kind!=='product'||!popup.id)return;
-   const pr=productById(popup.id),doc=pr.documents.find(d=>d.id===b.dataset.docId);
-   if(!doc)return;pr.documents=pr.documents.filter(d=>d.id!==doc.id);
-   URL.revokeObjectURL(doc.url);flash='PDF retiré de la fiche produit';render();return;
+   if(!popup.removedDocs)popup.removedDocs=[];
+   if(!popup.removedDocs.includes(b.dataset.docId))popup.removedDocs.push(b.dataset.docId);
+   b.closest('.file-chip')?.remove();return;
+ }
+ if(a==='remove-selected-doc'){
+   const input=document.getElementById('docs-file');if(!input)return;
+   const index=Number(b.dataset.fileIndex),transfer=new DataTransfer();
+   [...input.files].forEach((file,i)=>{if(i!==index)transfer.items.add(file);});
+   input.files=transfer.files;updateNewFileChips();return;
  }
  if(a==='period'){period=Number(b.dataset.days);render();return}
  if(a==='upload'){saveMessage('NON BRANCHÉ : stockage PDF privé nécessaire.');return}
@@ -370,8 +385,36 @@ document.addEventListener('click',function(e){
  }
  if(a==='restore'){p.archived=false;render();return}
 });
+function updateNewFileChips(){
+ const photo=document.getElementById('photo-file'),photos=document.getElementById('new-photo-chips');
+ if(photo&&photos){
+  photos.replaceChildren();
+  if(photo.files?.length){const chip=document.createElement('span');chip.className='file-chip';
+   const label=document.createElement('span');label.textContent='🖼 '+photo.files[0].name;
+   const remove=document.createElement('button');remove.type='button';remove.className='chip-x';remove.dataset.action='remove-photo';remove.textContent='×';remove.setAttribute('aria-label','Retirer la nouvelle photo');
+   chip.append(label,remove);photos.append(chip);
+  }
+ }
+ const input=document.getElementById('docs-file'),panel=document.getElementById('selected-doc-chips');
+ if(input&&panel){
+  panel.replaceChildren();
+  [...input.files].forEach((file,index)=>{
+   const chip=document.createElement('span');chip.className='file-chip';
+   const label=document.createElement('span');label.textContent='📄 '+file.name;
+   const remove=document.createElement('button');remove.type='button';remove.className='chip-x';remove.dataset.action='remove-selected-doc';remove.dataset.fileIndex=String(index);remove.textContent='×';remove.setAttribute('aria-label','Retirer le document '+file.name);
+   chip.append(label,remove);panel.append(chip);
+  });
+ }
+}
 document.addEventListener('change',function(e){
  const el=e.target,a=el.dataset.action,idv=el.dataset.id,p=productById(idv);
+ if(el.id==='photo-file'||el.id==='docs-file'){updateNewFileChips();return;}
+ if(a==='quantity'){
+  if(!p||p.mode!=='quantity')return;
+  const next=Number(el.value);
+  if(!Number.isSafeInteger(next)||next<0){el.value=String(p.qty);el.setCustomValidity('Saisissez une quantité entière positive.');el.reportValidity();el.setCustomValidity('');return;}
+  p.qty=next;p.status=status(p);p.updated=stamp();render();return;
+ }
  if(el.id==='stock-refresh-source'){
   stockRefreshPlan.source=el.value;
   if(el.value==='manual_upload')stockRefreshPlan.cadence='manual';
@@ -475,10 +518,19 @@ document.addEventListener('submit',function(e){
      target={id:id(),ref:reference,name:designation,category,brand,price:v,unit:data.unit,qty:quantity,mode:'quantity',status:quantity===0?'out_of_stock':quantity<=5?'low_stock':'in_stock',updated:stamp(),archived:false,photo:null,documents:[]};
      products.unshift(target);
    }
-   if(photo){
-     if(target.photo)URL.revokeObjectURL(target.photo.url);
-     target.photo={name:photo.name,mimeType:photo.type,sizeBytes:photo.size,url:URL.createObjectURL(photo)};
+   if(popup.removedPhoto||photo){
+     if(target.photo?.url?.startsWith('blob:'))URL.revokeObjectURL(target.photo.url);
+     target.photo=null;
    }
+   if(Array.isArray(popup.removedDocs)&&popup.removedDocs.length){
+     const deleting=new Set(popup.removedDocs);
+     target.documents=target.documents.filter(doc=>{
+       if(!deleting.has(doc.id))return true;
+       if(doc.url?.startsWith('blob:'))URL.revokeObjectURL(doc.url);
+       return false;
+     });
+   }
+   if(photo)target.photo={name:photo.name,mimeType:photo.type,sizeBytes:photo.size,url:URL.createObjectURL(photo)};
    pdfs.forEach(file=>target.documents.push({id:id(),productId:target.id,name:file.name,mimeType:file.type,sizeBytes:file.size,kind:'Fiche technique',url:URL.createObjectURL(file)}));
  }else if(k==='client'){
    const companyName=String(data.name||'').trim();
