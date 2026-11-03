@@ -221,3 +221,40 @@ test('import CSV : apercu, references generees, confirmation explicite, aucune s
  await expect(page.locator('tr').filter({hasText:'REF-EXCEL-CSV'})).toBeVisible();
  await expect(page.getByText(/démo en mémoire uniquement/).first()).toBeVisible();
 });
+
+test('boutons import Excel et nouveau produit séparés sur PC et mobile',async({page})=>{
+ for(const width of [390,760,1024,1440]){
+  await page.setViewportSize({width,height:900});
+  await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
+  if(width<=760)await page.locator('[data-action="menu"]').click();
+  await page.locator('.nav [data-page="Produits"]').click();
+  const importButton=page.locator('[data-action="import-toggle"]');
+  const newButton=page.locator('[data-action="new-product"]');
+  await expect(importButton).toBeVisible();await expect(newButton).toBeVisible();
+  const a=await importButton.boundingBox(),b=await newButton.boundingBox();
+  expect(a).not.toBeNull();expect(b).not.toBeNull();
+  const overlapX=Math.max(0,Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x));
+  const overlapY=Math.max(0,Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y));
+  expect(overlapX*overlapY).toBe(0);
+  await importButton.click();
+  await expect(page.getByRole('heading',{name:'Importer des produits en masse'})).toBeVisible();
+  await expect(page.locator('#import-file')).toHaveAttribute('accept','.xlsx,.csv,.tsv,.txt');
+ }
+});
+test('stock-only file refresh preserves price and schedule is never activated',async({page})=>{
+ await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
+ await page.locator('.nav [data-page="Stocks par agence"]').click();
+ await expect(page.getByRole('heading',{name:'Programmer les mises à jour'})).toBeVisible();
+ await expect(page.locator('#stock-refresh-cadence option[value="hourly"]')).toBeDisabled();
+ await page.locator('#stock-refresh-source').selectOption('hosted_xlsx');
+ await page.locator('#stock-refresh-cadence').selectOption('half_day');
+ await page.locator('[data-action="stock-refresh-save"]').click();
+ await expect(page.getByText(/Aucune exécution automatique active/)).toBeVisible();
+ await page.locator('#stock-refresh-file').setInputFiles({name:'stocks.csv',mimeType:'text/csv',buffer:Buffer.from('Référence;Stock\nDEMO-BOIS-001;41\n','utf8')});
+ await expect(page.getByText(/1 lignes lues/)).toBeVisible();
+ await page.locator('[data-action="stock-refresh-apply"]').click();
+ await expect(page.getByText(/1 stock\(s\) actualisés en mémoire/)).toBeVisible();
+ await expect(page.locator('tbody tr').first()).toContainText('41');
+ await page.locator('.nav [data-page="Produits"]').click();
+ await expect(page.locator('tr').filter({hasText:'DEMO-BOIS-001'}).locator('input[data-action="price"]')).toHaveValue('9,80');
+});
