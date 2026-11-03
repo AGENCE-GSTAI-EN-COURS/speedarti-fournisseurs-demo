@@ -77,8 +77,8 @@ function importPanelHtml(){
  const errors=importPlan.filter(r=>r.action==='error');
  const categories=CATALOGUE_METIERS.flatMap(g=>g.categories.map(c=>g.trade+' / '+c));
  return '<section class="panel import-demo" aria-label="Importation CSV et références automatiques"><h2>Importer des produits en masse</h2>'+
-  '<p class="sub">Démonstration : CSV (virgule ou point-virgule) et TSV. Le vrai portail React est également préparé pour les fichiers Excel .xlsx. Aucun fichier n\'est envoyé.</p>'+
-  '<div class="toolbar"><input id="import-file" type="file" accept=".csv,.tsv,.txt" aria-label="Catalogue CSV ou TSV">'+
+  '<p class="sub">Excel .xlsx, CSV (virgule ou point-virgule) et TSV — lecture locale. Aucun fichier n\'est envoyé à SpeedArti.</p>'+
+  '<div class="toolbar"><input id="import-file" type="file" accept=".xlsx,.csv,.tsv,.txt" aria-label="Catalogue Excel CSV ou TSV">'+
   '<a class="import-template" download="modele-fournisseur.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent(template)+'">Télécharger le modèle CSV</a></div>'+
   '<div class="import-controls"><label>Catégorie si absente<select id="import-default-category"><option value="">Ne pas inventer de catégorie</option>'+
   [...CATALOGUE_CATEGORIES,...categories].map(c=>'<option value="'+esc(c)+'" '+(c===importOptions.defaultCategory?'selected':'')+'>'+esc(c)+'</option>').join('')+
@@ -96,7 +96,7 @@ function importPanelHtml(){
 }
 function productTable(){
  const matches=active().filter(p=>(p.ref+' '+p.name+' '+p.category).toLowerCase().includes(search.toLowerCase())&&(stockFilter==='all'||status(p)===stockFilter));
- return '<div class="title"><div><h1>Mes produits</h1><p>Modifiez les prix, mettez à jour le stock ou archivez vos références.</p></div><div class="import-header-actions"><button class="ghost" data-action="import-toggle">⇧ Importer CSV / TSV</button><button class="primary" data-action="new-product">＋ Nouveau produit</button></div></div>'+
+ return '<div class="title"><div><h1>Mes produits</h1><p>Modifiez les prix, mettez à jour le stock ou archivez vos références.</p></div><div class="import-header-actions"><button class="ghost" data-action="import-toggle">⇧ Importer Excel / CSV</button><button class="primary" data-action="new-product">＋ Nouveau produit</button></div></div>'+
  (importOpen?importPanelHtml():'')+
  '<div class="panel"><div class="toolbar"><input id="search" value="'+esc(search)+'" placeholder="Rechercher un produit…"><button class="ghost" data-action="search">Rechercher</button><select id="stock-filter"><option value="all">Tous les stocks</option>'+Object.keys(names).map(k=>'<option value="'+k+'" '+(stockFilter===k?'selected':'')+'>'+names[k]+'</option>').join('')+'</select><button data-action="bulk-discount" '+(selected.size?'':'disabled')+'>% Remise ('+selected.size+')</button><button data-action="bulk-archive" '+(selected.size?'':'disabled')+'>Archiver</button></div>'+
  '<div class="tablewrap"><table><thead><tr><th>Choix</th><th>Produit / référence</th><th>Prix HT</th><th>Stock</th><th>Disponibilité</th><th>Actions</th></tr></thead><tbody>'+
@@ -233,7 +233,7 @@ document.addEventListener('click',function(e){
  }
  if(a==='import-toggle'){importOpen=!importOpen;importMessage='';render();return;}
  if(a==='import-preview'){
-  if(!importTable){importMessage='Choisir un fichier CSV ou TSV';render();return;}
+  if(!importTable){importMessage='Choisir un fichier Excel, CSV ou TSV';render();return;}
   importOptions={
    auto:document.getElementById('import-auto').checked,
    prefix:document.getElementById('import-prefix').value.trim().toUpperCase(),
@@ -306,14 +306,19 @@ document.addEventListener('change',function(e){
  if(el.id==='import-file'){
   const file=el.files?.[0];
   if(!file)return;
-  if(file.size<=0||file.size>10*1024*1024||!/(\.csv|\.tsv|\.txt)$/i.test(file.name)){
-   importMessage='Formats de la démo : CSV ou TSV, 10 Mo maximum.';importPlan=[];render();return;
+  if(file.size<=0||file.size>10*1024*1024||!/(\.xlsx|\.csv|\.tsv|\.txt)$/i.test(file.name)){
+   importMessage='Formats acceptés : Excel .xlsx, CSV ou TSV, 10 Mo maximum.';importPlan=[];render();return;
   }
-  file.text().then(text=>{
-   importTable=window.SupplierCsvDemo.parse(text);
-   importPlan=[];importMessage=importTable.length-1+' ligne(s) chargées. Clique sur Vérifier le fichier.';
+  const excel=/\.xlsx$/i.test(file.name);
+  const reading=excel?
+   (typeof window.readXlsxFile==='function'?window.readXlsxFile(file):Promise.reject(Error('Lecteur Excel indisponible. Actualisez la page ou utilisez un CSV.'))):
+   file.text().then(text=>window.SupplierCsvDemo.parse(text));
+  Promise.resolve(reading).then(table=>{
+   importTable=excel?table.map(row=>row.map(cell=>cell===null||cell===undefined?'':String(cell))):table;
+   if(importTable.length<2)throw Error('Fichier vide ou sans produit');
+   importPlan=[];importMessage=importTable.length-1+' ligne(s) chargées depuis '+file.name+'. Clique sur Vérifier le fichier.';
    render();
-  }).catch(e=>{importTable=null;importPlan=[];importMessage=e.message;render();});
+  }).catch(e=>{importTable=null;importPlan=[];importMessage=e instanceof Error?e.message:'Lecture impossible';render();});
   return;
  }
  if(el.id==='agency-select'){demoAgency=el.value;render();return;}
