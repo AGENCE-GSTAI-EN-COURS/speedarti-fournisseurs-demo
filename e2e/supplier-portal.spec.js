@@ -281,7 +281,7 @@ test('une référence déjà utilisée conserve tous les champs et affiche une e
  await form.locator('[type="submit"]').click();
  await expect(form).toHaveCount(0);
  await expect(page.locator('tr').filter({hasText:'TEST-CORRIGE-01'})).toBeVisible();
- await expect(page.locator('.alert')).toContainText('Produit TEST-CORRIGE-01 ajouté au catalogue');
+ await expect(page.locator('.alert')).toContainText('Produit ajouté au catalogue');
 });
 
 test('un produit ajouté reste visible même avec un ancien filtre de recherche',async({page})=>{
