@@ -245,7 +245,7 @@ test('stock-only file refresh preserves price and schedule is never activated',a
  await page.goto('/');await page.locator('[data-action="enter-demo"]').click();
  await page.locator('.nav [data-page="Stocks par agence"]').click();
  await expect(page.getByRole('heading',{name:'Programmer les mises à jour'})).toBeVisible();
- await expect(page.locator('#stock-refresh-cadence option[value="hourly"]')).toBeDisabled();
+ await expect(page.locator('#stock-refresh-cadence option[value="hourly"]')).toHaveAttribute('disabled','');
  await page.locator('#stock-refresh-source').selectOption('hosted_xlsx');
  await page.locator('#stock-refresh-cadence').selectOption('half_day');
  await page.locator('[data-action="stock-refresh-save"]').click();
