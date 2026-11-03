@@ -59,7 +59,7 @@
   const rows=[];
   for(let i=1;i<table.length;i++){
    const data=table[i],cell=k=>indexes[k]<0?'':String(data[indexes[k]]||'').trim();
-   const row={line:i+1,ref:cell('ref').toUpperCase(),name:cell('name'),brand:cell('brand')||'Démo',category:cell('category')||'Fournitures et consommables / Fournitures diverses',
+   const row={line:i+1,ref:cell('ref').toUpperCase(),name:cell('name'),brand:cell('brand')||'Démo',category:cell('category')||String(options.defaultCategory||''),
     unit:'unite',stock:null,price:0,action:'create',issue:''};
    try{
     if(!row.ref){
@@ -70,6 +70,7 @@
     }
     if(!/^[A-Z0-9][A-Z0-9._/-]{0,79}$/.test(row.ref))throw Error('Référence invalide');
     if(!row.name)throw Error('Désignation manquante');
+    if(!row.category)throw Error('Catégorie manquante : choisir une catégorie commune');
     row.price=price(cell('price'));
     const stock=cell('stock');
     if(stock){if(!/^\d+$/.test(stock))throw Error('Stock invalide');row.stock=Number(stock);}
